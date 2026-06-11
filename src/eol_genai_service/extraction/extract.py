@@ -44,6 +44,21 @@ class RuleBasedExtractor:
         predicate_ref = self._first_present(q, self._predicates)
         taxon_ref = self._first_present(q, self._taxa)
 
+        # Count question (US-4): an attribute, no specific taxon; roll up sub-types (FR-006).
+        if any(cue in q for cue in _COUNT_CUES):
+            if predicate_ref:
+                return QueryIntent(
+                    shape="aggregate_count", predicate_refs=(predicate_ref,), rollup=True
+                )
+            return QueryIntent(shape="novel")
+
+        # Lineage question (US-5): a taxon's ancestry, no predicate.
+        if any(cue in q for cue in _LINEAGE_CUES):
+            if taxon_ref:
+                return QueryIntent(shape="lineage", taxon_refs=(taxon_ref,))
+            return QueryIntent(shape="novel")
+
+        # Single-hop attribute/association (US-1/2/3): concrete shape derived from predicate type.
         if predicate_ref and taxon_ref:
             return QueryIntent(
                 shape="single_fact",
@@ -62,3 +77,8 @@ class RuleBasedExtractor:
 
 def _by_length_desc(forms: set[str]) -> tuple[str, ...]:
     return tuple(sorted((f.lower() for f in forms), key=len, reverse=True))
+
+
+# Question-form cues (generic English, not domain vocabulary — so they live in the extractor).
+_COUNT_CUES = ("how many", "number of", "count of", "how much do we have")
+_LINEAGE_CUES = ("ancestry", "lineage", "ancestors", "ancestor", "classification of", "phylogeny")

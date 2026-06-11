@@ -47,6 +47,15 @@ PREDICATE_CATALOG: list[PredicateTerm] = [
         type="association",
         aliases=("eats", "eat", "what do", "what does", "preys on", "feeds on", "diet"),
     ),
+    # A parent category: "body size" rolls up sub-types (body mass, body length) via the term
+    # hierarchy (US-4 / FR-006). Distinct surface form ("body size") so it doesn't collide with
+    # the bare "size" ambiguity exercised by US-6.
+    PredicateTerm(
+        uri="PATO_0000117",
+        name="body size",
+        type="measurement",
+        aliases=("body size", "overall size", "size measurement"),
+    ),
 ]
 
 TAXON_CATALOG: list[TaxonRecord] = [
@@ -103,18 +112,44 @@ EOL_ROWS: dict[tuple[int, str], list[dict[str, object]]] = {
     ],
 }
 
+# US-4: rolled-up counts keyed by the parent predicate URI. The roll-up itself lives in the
+# Cypher template (the parent_term traversal); the fixture supplies the resulting total.
+COUNT_ROWS: dict[str, list[dict[str, object]]] = {
+    "PATO_0000117": [{"count": 3}],  # body size, rolled up over its sub-types
+}
+
+# US-5: ordered ancestor chain (immediate parent first) keyed by the taxon page_id.
+LINEAGE_ROWS: dict[int, list[dict[str, object]]] = {
+    328583: [
+        {"ancestor_page_id": 328582, "ancestor_name": "Enhydra"},
+        {"ancestor_page_id": 327332, "ancestor_name": "Mustelidae"},
+        {"ancestor_page_id": 7662, "ancestor_name": "Carnivora"},
+        {"ancestor_page_id": 1642, "ancestor_name": "Mammalia"},
+    ],
+}
+
 _PAGE_RE = re.compile(r"page_id\s*=\s*(\d+)")
 _URI_RE = re.compile(r"uri:'([A-Z][A-Z0-9]*_[0-9]+)'")
 
 
 def fixture_transport(query: str, fmt: str) -> list[dict[str, object]]:
-    """Stand-in for the EOL network: resolve (page_id, uri) from the query and return rows."""
-    page_match = _PAGE_RE.search(query)
+    """Stand-in for the EOL network: dispatch on query shape and return canned rows."""
     uri_match = _URI_RE.search(query)
-    if not page_match or not uri_match:
-        return []
-    key = (int(page_match.group(1)), uri_match.group(1))
-    return list(EOL_ROWS.get(key, []))
+    page_match = _PAGE_RE.search(query)
+
+    # Aggregate count (no page_id; counts across taxa) — keyed by the parent predicate URI.
+    if "count(" in query.lower():
+        return list(COUNT_ROWS.get(uri_match.group(1), [{"count": 0}])) if uri_match else []
+
+    # Single-hop attribute/association: keyed by (page_id, predicate URI).
+    if page_match and uri_match:
+        return list(EOL_ROWS.get((int(page_match.group(1)), uri_match.group(1)), []))
+
+    # Lineage: parent-chain traversal with a page_id and no ontology URI.
+    if page_match and ":parent" in query:
+        return list(LINEAGE_ROWS.get(int(page_match.group(1)), []))
+
+    return []
 
 
 def predicate_surface_forms() -> set[str]:

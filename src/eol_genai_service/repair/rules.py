@@ -39,7 +39,16 @@ class RepairRule:
 REPAIR_RULES: tuple[RepairRule, ...] = (
     RepairRule("categorical-as-numeric", "1.0.0", "Read object_term for a categorical predicate"),
     RepairRule("flip-association-direction", "1.0.0", "Flip an inverted association direction"),
+    RepairRule("missing-rollup", "1.0.0", "Add the parent_term roll-up traversal for a category"),
 )
+
+# The roll-up traversal injected when a category query under-counts its sub-types (FR-006).
+ROLLUP_TRAVERSAL = "-[:parent_term|synonym_of*0..]->"
+
+
+def rollup_traversal() -> str:
+    """The traversal to add when a query is missing roll-up (``missing-rollup``)."""
+    return ROLLUP_TRAVERSAL
 
 
 def rule_version(rule_id: str) -> str | None:

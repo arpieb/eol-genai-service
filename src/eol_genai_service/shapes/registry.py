@@ -7,12 +7,20 @@ template produced a query.
 
 from __future__ import annotations
 
-from eol_genai_service.shapes import association, categorical_attribute, single_fact
+from eol_genai_service.shapes import (
+    aggregate_count,
+    association,
+    categorical_attribute,
+    lineage,
+    single_fact,
+)
 
 SHAPE_VERSIONS: dict[str, str] = {
     "single_fact": single_fact.VERSION,
     "categorical_attribute": categorical_attribute.VERSION,
     "association": association.VERSION,
+    "aggregate_count": aggregate_count.VERSION,
+    "lineage": lineage.VERSION,
 }
 
 
