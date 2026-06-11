@@ -29,18 +29,20 @@ class RuleBasedExtractor:
 
     def __init__(
         self,
-        predicate_surface_forms: dict[str, str],
-        taxon_surface_forms: dict[str, str],
+        predicate_surface_forms: set[str],
+        taxon_surface_forms: set[str],
     ) -> None:
-        # Map: surface form (lowercased) -> canonical ref. Longest forms matched first so
-        # "body mass" wins over "mass".
-        self._predicates = predicate_surface_forms
-        self._taxa = taxon_surface_forms
+        # Surface forms (lowercased), longest first so "sea otter" wins over "otter". The extractor
+        # emits the matched *surface phrase* — it does NOT pre-resolve to one entity, so an
+        # ambiguous phrase ("otter", "size") reaches the resolver and surfaces as multiple
+        # candidates (US-6). Resolution, not extraction, owns disambiguation.
+        self._predicates = _by_length_desc(predicate_surface_forms)
+        self._taxa = _by_length_desc(taxon_surface_forms)
 
     def extract(self, question: str) -> QueryIntent:
         q = question.lower()
-        predicate_ref = self._longest_match(q, self._predicates)
-        taxon_ref = self._longest_match(q, self._taxa)
+        predicate_ref = self._first_present(q, self._predicates)
+        taxon_ref = self._first_present(q, self._taxa)
 
         if predicate_ref and taxon_ref:
             return QueryIntent(
@@ -51,10 +53,12 @@ class RuleBasedExtractor:
         return QueryIntent(shape="novel")
 
     @staticmethod
-    def _longest_match(haystack: str, forms: dict[str, str]) -> str | None:
-        best: str | None = None
-        best_len = 0
-        for form, ref in forms.items():
-            if form in haystack and len(form) > best_len:
-                best, best_len = ref, len(form)
-        return best
+    def _first_present(haystack: str, forms_longest_first: tuple[str, ...]) -> str | None:
+        for form in forms_longest_first:
+            if form in haystack:
+                return form
+        return None
+
+
+def _by_length_desc(forms: set[str]) -> tuple[str, ...]:
+    return tuple(sorted((f.lower() for f in forms), key=len, reverse=True))
