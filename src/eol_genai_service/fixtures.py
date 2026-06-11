@@ -68,6 +68,9 @@ TAXON_CATALOG: list[TaxonRecord] = [
     ),
     # A taxon EOL describes but with no recorded body mass — exercises the no_records path.
     TaxonRecord(page_id=328598, scientific_name="Procyon lotor", vernaculars=("raccoon",)),
+    # Partners in the US-7 diet chain (sea otter → urchin → kelp).
+    TaxonRecord(page_id=598454, scientific_name="Strongylocentrotus", vernaculars=("sea urchin",)),
+    TaxonRecord(page_id=699999, scientific_name="Macrocystis", vernaculars=("giant kelp",)),
 ]
 
 # Canned EOL measurement rows keyed by (page_id, predicate_uri). Absence → empty → no_records.
@@ -128,14 +131,46 @@ LINEAGE_ROWS: dict[int, list[dict[str, object]]] = {
     ],
 }
 
+# US-7: association edges for set-valued single_hop and n_hop_chain, keyed by predicate URI then
+# source page_id → set of partner page_ids. The 2-hop diet chain: otter eats urchin eats kelp.
+HOP_EDGES: dict[str, dict[int, set[int]]] = {
+    "RO_0002470": {  # eats
+        328583: {598454},  # sea otter → sea urchin
+        598454: {699999},  # sea urchin → giant kelp
+    },
+}
+
+_NAME_BY_PAGE: dict[int, str] = {r.page_id: r.scientific_name for r in TAXON_CATALOG}
+
 _PAGE_RE = re.compile(r"page_id\s*=\s*(\d+)")
 _URI_RE = re.compile(r"uri:'([A-Z][A-Z0-9]*_[0-9]+)'")
+
+
+_IDS_RE = re.compile(r"page_id\s+IN\s+\[([\d,\s]*)\]")
 
 
 def fixture_transport(query: str, fmt: str) -> list[dict[str, object]]:
     """Stand-in for the EOL network: dispatch on query shape and return canned rows."""
     uri_match = _URI_RE.search(query)
     page_match = _PAGE_RE.search(query)
+
+    # US-7 n-hop chain: evaluate the ordered predicate chain over the hop edges (single LIMIT).
+    if "with distinct" in query.lower():
+        frontier = {int(page_match.group(1))} if page_match else set()
+        for uri in _URI_RE.findall(query):  # in chain order
+            edges = HOP_EDGES.get(uri, {})
+            frontier = {p for src in frontier for p in edges.get(src, set())}
+        return [
+            {"result_page_id": p, "result_name": _NAME_BY_PAGE.get(p, "")} for p in sorted(frontier)
+        ]
+
+    # US-7 set-valued single hop: union the partners of every input page_id.
+    ids_match = _IDS_RE.search(query)
+    if ids_match and uri_match:
+        ids = [int(x) for x in ids_match.group(1).split(",") if x.strip()]
+        edges = HOP_EDGES.get(uri_match.group(1), {})
+        partners = {p for src in ids for p in edges.get(src, set())}
+        return [{"partner_page_id": p} for p in sorted(partners)]
 
     # Aggregate count (no page_id; counts across taxa) — keyed by the parent predicate URI.
     if "count(" in query.lower():
@@ -171,7 +206,7 @@ def taxon_surface_forms() -> set[str]:
 
 
 def build_offline_deps(settings: Settings | None = None) -> PipelineDeps:
-    """Assemble a fully offline :class:`PipelineDeps` for the US-1 pipeline."""
+    """Assemble a fully offline :class:`PipelineDeps` for the pipeline."""
     settings = settings or Settings()
     return PipelineDeps(
         extractor=RuleBasedExtractor(predicate_surface_forms(), taxon_surface_forms()),
@@ -180,3 +215,13 @@ def build_offline_deps(settings: Settings | None = None) -> PipelineDeps:
         client=EolCypherClient(settings, fixture_transport),
         settings=settings,
     )
+
+
+def build_offline_tool_surface(settings: Settings | None = None):
+    """Assemble a fully offline :class:`ToolSurface` (US-7) over the fixture catalogs."""
+    from eol_genai_service.contract import Predicate
+    from eol_genai_service.tools.surface import DEFAULT_SCHEMA, ToolSurface
+
+    deps = build_offline_deps(settings)
+    predicates = [Predicate(uri=t.uri, name=t.name, type=t.type) for t in PREDICATE_CATALOG]
+    return ToolSurface(deps, predicates, DEFAULT_SCHEMA)

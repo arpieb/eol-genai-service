@@ -176,11 +176,11 @@ sub-types (wingspan, body mass), matching a hand-written roll-up query.
 **Independent Test**: A compositional question returns a correctly composed answer or
 `out_of_capability`; never a confident wrong answer.
 
-- [ ] T040 [P] [US7] Integration test in `tests/integration/test_us7_novel.py` (composed answer OR `out_of_capability`; no fabrication)
-- [ ] T041 [US7] Set-valued `single_hop(page_ids:set, predicate_uri, direction)` in `src/eol_genai_service/orchestration/single_hop.py` (set-in/set-out, `truncated`, per-hop direction assertion — guards R7's three failure modes)
-- [ ] T042 [US7] MCP/tool surface in `src/eol_genai_service/tools/server.py` exposing `resolve_predicate`, `resolve_taxon`, `run_cypher`, `single_hop`, `list_predicates`, `get_schema` (read-only; no plan-multi-hop tool, Principle V)
-- [ ] T043 [US7] Server-side `n_hop_chain` parameterized shape (single LIMIT, `WITH DISTINCT … carry page … next predicate`) in `src/eol_genai_service/shapes/n_hop_chain.py`
-- [ ] T044 [US7] `out_of_capability` routing for novel beyond modeled chains in `src/eol_genai_service/api/app.py`
+- [X] T040 [P] [US7] Integration test in `tests/integration/test_us7_novel.py` (composed answer OR `out_of_capability`; no fabrication)
+- [X] T041 [US7] Set-valued `single_hop(page_ids:set, predicate_uri, direction)` in `src/eol_genai_service/orchestration/single_hop.py` (set-in/set-out, `truncated`, per-hop direction assertion — guards R7's three failure modes)
+- [X] T042 [US7] MCP/tool surface in `src/eol_genai_service/tools/server.py` exposing `resolve_predicate`, `resolve_taxon`, `run_cypher`, `single_hop`, `list_predicates`, `get_schema` (read-only; no plan-multi-hop tool, Principle V)
+- [X] T043 [US7] Server-side `n_hop_chain` parameterized shape (single LIMIT, `WITH DISTINCT … carry page … next predicate`) in `src/eol_genai_service/shapes/n_hop_chain.py`
+- [X] T044 [US7] `out_of_capability` routing for novel beyond modeled chains in `src/eol_genai_service/api/app.py`
 
 **Checkpoint**: Full long-tail handling; "never confidently wrong" holds.
 
