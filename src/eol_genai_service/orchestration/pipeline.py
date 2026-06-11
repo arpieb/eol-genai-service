@@ -28,13 +28,16 @@ from eol_genai_service.contract import Statement
 from eol_genai_service.extraction.extract import Extractor
 from eol_genai_service.resolution.predicates import PredicateResolver
 from eol_genai_service.resolution.taxa import TaxonResolver
+from eol_genai_service.shapes.aggregate_count import build_aggregate_count_query
 from eol_genai_service.shapes.association import association_direction, build_association_query
 from eol_genai_service.shapes.categorical_attribute import build_categorical_query
+from eol_genai_service.shapes.lineage import build_lineage_query
 from eol_genai_service.shapes.single_fact import build_single_fact_query
 from eol_genai_service.upstream.client import EolCypherClient, UpstreamUnavailable
 from eol_genai_service.upstream.mappers import (
     map_association_rows,
     map_categorical_rows,
+    map_lineage_rows,
     map_single_fact_rows,
 )
 from eol_genai_service.upstream.run_cypher import run_cypher
@@ -68,6 +71,12 @@ def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
         # No modeled single-hop shape matched (US-7 territory); never fabricate an answer.
         return OutOfCapabilityResult(reason="question is not a modeled single-hop shape")
 
+    # Shapes that don't follow the "one taxon + one predicate" form get their own branch.
+    if intent.shape == "aggregate_count":
+        return _answer_count(intent, deps)
+    if intent.shape == "lineage":
+        return _answer_lineage(request, intent, deps)
+
     # --- Resolve the taxon (honor a prior disambiguation choice first; FR-014) ---
     subject = _resolve_subject(request, intent, deps)
     if isinstance(subject, NeedsClarificationResult):
@@ -96,6 +105,42 @@ def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
 
     statements = _map(shape, upstream.rows, subject, predicate)
     return AnswerResult(statements=statements, truncated=upstream.truncated, cap=cap)
+
+
+def _answer_count(intent, deps: PipelineDeps) -> Result:
+    """US-4: count taxa with a recorded value for a (rolled-up) predicate. No taxon involved."""
+    predicate = _resolve_predicate(intent, deps)
+    if isinstance(predicate, NeedsClarificationResult):
+        return predicate
+    cap = deps.settings.result_cap
+    query = build_aggregate_count_query(predicate.uri, cap)
+    try:
+        upstream = run_cypher(query, {predicate.uri}, deps.client)
+    except UpstreamUnavailable as exc:
+        return UpstreamUnavailableResult(detail=str(exc))
+    # A count is always an answer (zero is a valid count), never no_records.
+    count = int(upstream.rows[0]["count"]) if upstream.rows else 0
+    return AnswerResult(statements=[], count=count, truncated=upstream.truncated, cap=cap)
+
+
+def _answer_lineage(request: AnswerRequest, intent, deps: PipelineDeps) -> Result:
+    """US-5: return a taxon's ancestor chain. No predicate involved (graph traversal, no URI)."""
+    subject = _resolve_subject(request, intent, deps)
+    if isinstance(subject, NeedsClarificationResult):
+        return subject
+    cap = deps.settings.result_cap
+    query = build_lineage_query(subject.page_id, cap)
+    try:
+        upstream = run_cypher(query, set(), deps.client)  # no ontology URI to resolve
+    except UpstreamUnavailable as exc:
+        return UpstreamUnavailableResult(detail=str(exc))
+    if not upstream.rows:
+        return NoRecordsResult()
+    return AnswerResult(
+        statements=map_lineage_rows(upstream.rows, subject),
+        truncated=upstream.truncated,
+        cap=cap,
+    )
 
 
 def _build_query(shape: str, page_id: int, uri: str, cap: int) -> str:
@@ -129,7 +174,9 @@ def _resolve_subject(
             scientific_name=top.scientific_name,
             vernacular_names=top.vernacular_names,
         )
-    return NeedsClarificationResult(candidates=CandidateSet(kind="taxon", items=candidates))
+    return NeedsClarificationResult(
+        candidates=CandidateSet(kind="taxon", items=_contending(candidates))
+    )
 
 
 def _resolve_predicate(intent, deps: PipelineDeps) -> Predicate | NeedsClarificationResult:
@@ -137,7 +184,9 @@ def _resolve_predicate(intent, deps: PipelineDeps) -> Predicate | NeedsClarifica
     if _is_confident(candidates):
         top = candidates[0]
         return Predicate(uri=top.uri, name=top.name, type=top.type)
-    return NeedsClarificationResult(candidates=CandidateSet(kind="predicate", items=candidates))
+    return NeedsClarificationResult(
+        candidates=CandidateSet(kind="predicate", items=_contending(candidates))
+    )
 
 
 def _is_confident(candidates: list) -> bool:
@@ -147,3 +196,12 @@ def _is_confident(candidates: list) -> bool:
     if len(candidates) > 1 and candidates[0].score - candidates[1].score < AMBIGUITY_MARGIN:
         return False
     return True
+
+
+def _contending(candidates: list) -> list:
+    """The genuinely-competing candidates to present for clarification — those within the
+    ambiguity margin of the top. Weak partial matches are not shown to the user."""
+    if not candidates:
+        return []
+    cutoff = candidates[0].score - AMBIGUITY_MARGIN
+    return [c for c in candidates if c.score >= cutoff]

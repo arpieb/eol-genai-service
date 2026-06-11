@@ -4,6 +4,7 @@ from eol_genai_service.repair.rules import (
     REPAIR_RULES,
     correct_value_slot,
     flip_direction,
+    rollup_traversal,
     rule_version,
 )
 from eol_genai_service.shapes.registry import shape_version
@@ -26,12 +27,22 @@ def test_flip_direction_is_an_involution():
 def test_repair_rules_are_versioned():
     assert rule_version("categorical-as-numeric") == "1.0.0"
     assert rule_version("flip-association-direction") == "1.0.0"
+    assert rule_version("missing-rollup") == "1.0.0"
     assert rule_version("nonexistent") is None
-    assert len(REPAIR_RULES) == 2
+    assert len(REPAIR_RULES) == 3
 
 
-def test_shape_registry_now_covers_p2_shapes():
-    assert shape_version("single_fact") is not None
-    assert shape_version("categorical_attribute") is not None
-    assert shape_version("association") is not None
-    assert shape_version("lineage") is None  # not modeled yet
+def test_missing_rollup_supplies_the_parent_term_traversal():
+    assert "parent_term|synonym_of*0.." in rollup_traversal()
+
+
+def test_shape_registry_covers_all_modeled_shapes():
+    for shape in (
+        "single_fact",
+        "categorical_attribute",
+        "association",
+        "aggregate_count",
+        "lineage",
+    ):
+        assert shape_version(shape) is not None, shape
+    assert shape_version("n_hop_chain") is None  # US-7, not modeled yet

@@ -89,6 +89,34 @@ def map_association_rows(
     return statements
 
 
+# Lineage isn't an ontology predicate — it's a parent-chain traversal. This presentation-only
+# marker labels each ancestor edge in the result (it never appears in any query).
+LINEAGE_PREDICATE = Predicate(uri="eol:parent", name="parent taxon", type="association")
+
+
+def map_lineage_rows(rows: Sequence[dict[str, object]], subject: Taxon) -> list[Statement]:
+    """Map ordered ancestor rows to taxon-valued statements (US-5).
+
+    Each ancestor is the object of an ``object_to_subject`` relation (ancestor → subject). Row
+    order is the lineage order (immediate parent first).
+    """
+    statements: list[Statement] = []
+    for row in rows:
+        ancestor = Taxon(
+            page_id=int(row["ancestor_page_id"]),  # type: ignore[arg-type]
+            scientific_name=str(row["ancestor_name"]),
+        )
+        statements.append(
+            Statement(
+                subject=subject,
+                predicate=LINEAGE_PREDICATE,
+                value=TaxonValue(taxon=ancestor, direction="object_to_subject"),
+                provenance=Provenance(),
+            )
+        )
+    return statements
+
+
 def _provenance(row: dict[str, object]) -> Provenance:
     resource = None
     if row.get("resource_name") is not None:

@@ -147,9 +147,9 @@ correct `direction`, verified against a hand-written query.
 **Independent Test**: "how many taxa have a recorded body size?" returns a count including size
 sub-types (wingspan, body mass), matching a hand-written roll-up query.
 
-- [ ] T035 [P] [US4] Integration test in `tests/integration/test_us4_aggregate.py` (roll-up correctness, FR-006)
-- [ ] T036 [US4] `aggregate_count` versioned shape using `-[:parent_term|synonym_of*0..]->` in `src/eol_genai_service/shapes/aggregate_count.py`
-- [ ] T037 [US4] `count` payload mapping + "missing roll-up → add traversal" repair rule in `src/eol_genai_service/repair/rules.py`
+- [X] T035 [P] [US4] Integration test in `tests/integration/test_us4_aggregate.py` (roll-up correctness, FR-006)
+- [X] T036 [US4] `aggregate_count` versioned shape using `-[:parent_term|synonym_of*0..]->` in `src/eol_genai_service/shapes/aggregate_count.py`
+- [X] T037 [US4] `count` payload mapping + "missing roll-up → add traversal" repair rule in `src/eol_genai_service/repair/rules.py`
 
 **Checkpoint**: US-1..US-4 independently functional.
 
@@ -161,8 +161,8 @@ sub-types (wingspan, body mass), matching a hand-written roll-up query.
 
 **Independent Test**: Ancestry of a known taxon returns the ordered parent chain to the root.
 
-- [ ] T038 [P] [US5] Integration test in `tests/integration/test_us5_lineage.py`
-- [ ] T039 [US5] `lineage` versioned shape (parent-chain traversal, LIMIT mandatory) in `src/eol_genai_service/shapes/lineage.py`
+- [X] T038 [P] [US5] Integration test in `tests/integration/test_us5_lineage.py`
+- [X] T039 [US5] `lineage` versioned shape (parent-chain traversal, LIMIT mandatory) in `src/eol_genai_service/shapes/lineage.py`
 
 **Checkpoint**: All canonical shapes (US-1..US-5) independently functional.
 
