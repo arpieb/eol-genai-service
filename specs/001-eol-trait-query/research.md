@@ -49,22 +49,33 @@ wasteful and slower.
 ## R3. Service-side LLM + constrained decoding
 
 **Decision**: Use **Mellea constrained decoding** to produce a **format-valid typed intent object**
-and a **general frontier Claude model** (e.g., Claude Sonnet 4.6 by default, model id configurable)
-for the scoped extraction/judgment work. Semantic correctness comes from the resolve-and-verify
-step (R1) and the validator — not from the decoding constraint.
+for the scoped extraction/judgment work, on **Mellea's default local Granite/Ollama backend**.
+Semantic correctness comes from the resolve-and-verify step (R1) and the validator — not from the
+decoding constraint or the model's domain knowledge.
 
 **Rationale**: Constitution V scopes the service model to extraction, term/taxon resolution, repair,
-and ambiguity judgment. Constrained decoding guarantees the intent object is well-typed (parseable,
-consistent per call); it does **not** guarantee the chosen URIs are real — that is R1's job. A
-general model (IV) plus retrieval beats a tuned model. Model id is configuration, not load-bearing
-architecture.
+and ambiguity judgment — a narrow, constrained-decoded task where retrieval (R1) does the domain
+grounding. Per the Principle IV scope clarification (constitution v1.1.0), the frontier-LLM
+requirement binds the *client orchestrator* and grounding, not this scoped extractor; so the
+extractor MAY run on a small, local, constrained model. Mellea's local default (Granite on Ollama)
+needs no API key, runs offline, is cheap and low-latency (helps SC-006), and keeps an external
+provider off the hot path. Model id/backend is configuration, not load-bearing architecture.
 
-**Pinned default** (override via config): service-side reasoning model `claude-sonnet-4-6` (a
-general frontier Claude model; bare model-id string, never date-suffixed). Larger models (e.g.
-`claude-opus-4-8`) are drop-in via config if extraction quality on the long tail warrants it.
+**Pinned default** (override via config): service-side extractor `granite4.1:3b` via Mellea's local
+Ollama backend. A general frontier Claude model (e.g. `claude-sonnet-4-6`, `claude-opus-4-8`) is a
+drop-in configurable upgrade — recommended for the hard disambiguation/repair tail where a 3B model
+may underperform.
 
-**Alternatives considered**: Free-form JSON prompting without constrained decoding — rejected,
-format drift and parse failures. A domain-tuned small model — rejected per Constitution IV.
+**Open spikes before committing the default at scale**: (1) verify Mellea's constrained-decoding
+guarantee holds on the Ollama/Granite backend (structured-output fidelity can vary by backend);
+(2) measure extraction quality on the ambiguous tail (US-6/US-7 phrasings) at 3B — keep the frontier
+escape hatch for cases where it underperforms.
+
+**Alternatives considered**: A general frontier model as the *default* for the extractor — rejected
+as the default (adds an API-key dependency and per-call cost to the common path for a task a small
+constrained model handles) but retained as a configurable option. Free-form JSON prompting without
+constrained decoding — rejected (format drift). A domain-tuned model — rejected per Constitution IV
+(domain knowledge lives in retrieval, not weights).
 
 ## R4. Two-tier split and where guarantees live
 
