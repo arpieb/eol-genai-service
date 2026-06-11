@@ -51,12 +51,12 @@ validator, the upstream client, resolution/grounding, extraction, and tracing.
 - [X] T009 [P] Single validator (Principle II) in `src/eol_genai_service/validator/core.py`: `validate(query, resolved_uris) -> Verdict` asserting LIMIT present, all URIs ∈ resolved set (case-sensitive), read-only (per contracts/validator.md)
 - [X] T010 `run_cypher` no-bypass wiring in `src/eol_genai_service/upstream/run_cypher.py`: validator FIRST, execute only on positive verdict, single path to EOL (depends on T008, T009)
 - [ ] T011 Embedded term catalog in `src/eol_genai_service/resolution/index.py`: enumerate predicate/value `Term`s from the graph, embed, persist, query (build + lookup) per research.md R1/R2
-- [ ] T012 [P] `resolve_predicate(text)` in `src/eol_genai_service/resolution/predicates.py` returning ranked `Term` candidates with scores (depends on T011)
-- [ ] T013 [P] `resolve_taxon(name)` in `src/eol_genai_service/resolution/taxa.py`, preferring EOL page/search lookup over name matching (FR-003) (depends on T008, T011)
+- [X] T012 [P] `resolve_predicate(text)` in `src/eol_genai_service/resolution/predicates.py` returning ranked `Term` candidates with scores (depends on T011)
+- [X] T013 [P] `resolve_taxon(name)` in `src/eol_genai_service/resolution/taxa.py`, preferring EOL page/search lookup over name matching (FR-003) (depends on T008, T011)
 - [ ] T014 Mellea-constrained extractor (Principle V) in `src/eol_genai_service/extraction/extract.py`: NL → `QueryIntent` (shape/taxon_refs/predicate_refs/rollup/direction_hint/hops) (depends on T006)
-- [ ] T015 [P] neo4j→contract mapper in `src/eol_genai_service/upstream/mappers.py`: 4 value slots → `Value.kind`, provenance attach, `truncated`/`count` (depends on T006)
+- [X] T015 [P] neo4j→contract mapper in `src/eol_genai_service/upstream/mappers.py`: 4 value slots → `Value.kind`, provenance attach, `truncated`/`count` (depends on T006)
 - [ ] T016 [P] Versioned shape + repair registries in `src/eol_genai_service/shapes/registry.py` and `src/eol_genai_service/repair/rules.py` (id+version, testable lookup)
-- [ ] T017 Request pipeline + FastAPI `POST /v1/answer` in `src/eol_genai_service/api/app.py` wiring extract→resolve→shape→validator→run_cypher→map→Result (depends on T006, T010, T014, T015, T016)
+- [X] T017 Request pipeline + FastAPI `POST /v1/answer` in `src/eol_genai_service/api/app.py` wiring extract→resolve→shape→validator→run_cypher→map→Result (depends on T006, T010, T014, T015, T016)
 - [X] T018 [P] Validator contract tests (SC-002, SC-003 hard gates) in `tests/contract/test_validator.py`: positive + negative for MISSING_LIMIT, UNRESOLVED_URI, NOT_READ_ONLY; assert zero upstream call on violation (depends on T009, T010)
 
 **Checkpoint**: Foundation ready — user stories can now proceed.
@@ -71,11 +71,11 @@ or an explicit no-record answer.
 **Independent Test**: "how heavy is a sea otter?" returns body-mass value(s) with units + source
 matching a hand-written query; a taxon with no mass record returns `no_records`.
 
-- [ ] T019 [P] [US1] Integration test in `tests/integration/test_us1_single_fact.py`: quantitative answer + provenance; no-record path → `no_records`
-- [ ] T020 [P] [US1] Client-contract conformance test (invariants C1–C4) in `tests/contract/test_client_contract.py`
-- [ ] T021 [US1] `single_fact` versioned shape template in `src/eol_genai_service/shapes/single_fact.py` (LIMIT mandatory)
-- [ ] T022 [US1] Quantitative `Value` mapping (amount/units/normalized from `normal_measurement`) in `src/eol_genai_service/upstream/mappers.py`
-- [ ] T023 [US1] Register `single_fact` in the shape registry and route `shape=single_fact` through the pipeline in `src/eol_genai_service/api/app.py`
+- [X] T019 [P] [US1] Integration test in `tests/integration/test_us1_single_fact.py`: quantitative answer + provenance; no-record path → `no_records`
+- [X] T020 [P] [US1] Client-contract conformance test (invariants C1–C4) in `tests/contract/test_client_contract.py`
+- [X] T021 [US1] `single_fact` versioned shape template in `src/eol_genai_service/shapes/single_fact.py` (LIMIT mandatory)
+- [X] T022 [US1] Quantitative `Value` mapping (amount/units/normalized from `normal_measurement`) in `src/eol_genai_service/upstream/mappers.py`
+- [X] T023 [US1] Register `single_fact` in the shape registry and route `shape=single_fact` through the pipeline in `src/eol_genai_service/api/app.py`
 
 **Checkpoint**: US-1 fully functional and independently testable (MVP).
 
