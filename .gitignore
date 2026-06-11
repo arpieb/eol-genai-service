@@ -8,3 +8,23 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local artifacts (term catalog index, caches)
+*.index
+.cache/
+
+# Secrets / env
+.env
+.env.*
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
