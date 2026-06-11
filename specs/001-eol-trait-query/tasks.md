@@ -88,9 +88,9 @@ matching a hand-written query; a taxon with no mass record returns `no_records`.
 **Independent Test**: A common name mapping to multiple taxa yields `needs_clarification` with a
 candidate list; resubmitting with `chosen` proceeds to an answer.
 
-- [ ] T024 [P] [US6] Ambiguity-set integration test (SC-004 hard gate, 100%) in `tests/integration/test_us6_disambiguation.py`
-- [ ] T025 [US6] Confidence thresholds + `CandidateSet` assembly in `src/eol_genai_service/resolution/predicates.py` and `src/eol_genai_service/resolution/taxa.py`
-- [ ] T026 [US6] Stateless clarification branch in `src/eol_genai_service/api/app.py`: low confidence → `needs_clarification`; honor `request.chosen` on resubmit (FR-014)
+- [X] T024 [P] [US6] Ambiguity-set integration test (SC-004 hard gate, 100%) in `tests/integration/test_us6_disambiguation.py`
+- [X] T025 [US6] Confidence thresholds + `CandidateSet` assembly in `src/eol_genai_service/resolution/predicates.py` and `src/eol_genai_service/resolution/taxa.py`
+- [X] T026 [US6] Stateless clarification branch in `src/eol_genai_service/api/app.py`: low confidence → `needs_clarification`; honor `request.chosen` on resubmit (FR-014)
 
 **Checkpoint**: US-6 ensures no silent guessing across all stories.
 
@@ -103,8 +103,8 @@ candidate list; resubmitting with `chosen` proceeds to an answer.
 **Independent Test**: A resolved question with empty upstream result returns `no_records` (distinct
 from `upstream_unavailable`), single call, no retry.
 
-- [ ] T027 [P] [US8] Integration test in `tests/integration/test_us8_no_data.py`: empty upstream → `no_records`; assert single call, no retry on empty
-- [ ] T028 [US8] Empty-rows → `no_records` mapping (distinct from `upstream_unavailable`) and no-retry-on-empty rule in `src/eol_genai_service/upstream/run_cypher.py`
+- [X] T027 [P] [US8] Integration test in `tests/integration/test_us8_no_data.py`: empty upstream → `no_records`; assert single call, no retry on empty
+- [X] T028 [US8] Empty-rows → `no_records` mapping (distinct from `upstream_unavailable`) and no-retry-on-empty rule in `src/eol_genai_service/upstream/run_cypher.py`
 
 **Checkpoint**: Empty vs. unavailable vs. error are cleanly distinct.
 

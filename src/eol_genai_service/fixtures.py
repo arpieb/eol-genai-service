@@ -25,12 +25,26 @@ PREDICATE_CATALOG: list[PredicateTerm] = [
         uri="VT_0001259",
         name="body mass",
         type="measurement",
-        aliases=("body mass", "mass", "weight", "how heavy", "heavy", "weigh"),
+        # "size" is deliberately shared with body length below: a generic "size" question is
+        # ambiguous between sub-types (US-6 / FR-006), so it must disambiguate, not guess.
+        aliases=("body mass", "mass", "weight", "how heavy", "heavy", "weigh", "size"),
+    ),
+    PredicateTerm(
+        uri="PATO_0000122",
+        name="body length",
+        type="measurement",
+        aliases=("body length", "length", "long", "size"),
     ),
 ]
 
 TAXON_CATALOG: list[TaxonRecord] = [
-    TaxonRecord(page_id=328583, scientific_name="Enhydra lutris", vernaculars=("sea otter",)),
+    # "otter" is a shared vernacular across two taxa — a homonym that must disambiguate (US-6).
+    TaxonRecord(
+        page_id=328583, scientific_name="Enhydra lutris", vernaculars=("sea otter", "otter")
+    ),
+    TaxonRecord(
+        page_id=328587, scientific_name="Lontra canadensis", vernaculars=("river otter", "otter")
+    ),
     # A taxon EOL describes but with no recorded body mass — exercises the no_records path.
     TaxonRecord(page_id=328598, scientific_name="Procyon lotor", vernaculars=("raccoon",)),
 ]
@@ -40,6 +54,15 @@ EOL_ROWS: dict[tuple[int, str], list[dict[str, object]]] = {
     (328583, "VT_0001259"): [
         {
             "amount": 25.0,
+            "units": "kg",
+            "resource_id": 42,
+            "resource_name": "PanTHERIA",
+            "citation": "Jones et al. 2009",
+        }
+    ],
+    (328587, "VT_0001259"): [
+        {
+            "amount": 9.0,
             "units": "kg",
             "resource_id": 42,
             "resource_name": "PanTHERIA",
@@ -62,21 +85,21 @@ def fixture_transport(query: str, fmt: str) -> list[dict[str, object]]:
     return list(EOL_ROWS.get(key, []))
 
 
-def predicate_surface_forms() -> dict[str, str]:
-    """Surface form (lowercased) → canonical predicate ref, for the offline extractor."""
-    forms: dict[str, str] = {}
+def predicate_surface_forms() -> set[str]:
+    """Recognizable predicate surface phrases (lowercased), for the offline extractor."""
+    forms: set[str] = set()
     for term in PREDICATE_CATALOG:
-        for alias in (term.name, *term.aliases):
-            forms[alias.lower()] = term.name
+        forms.add(term.name.lower())
+        forms.update(a.lower() for a in term.aliases)
     return forms
 
 
-def taxon_surface_forms() -> dict[str, str]:
-    """Surface form (lowercased) → canonical taxon ref, for the offline extractor."""
-    forms: dict[str, str] = {}
+def taxon_surface_forms() -> set[str]:
+    """Recognizable taxon surface phrases (lowercased), for the offline extractor."""
+    forms: set[str] = set()
     for rec in TAXON_CATALOG:
-        for form in (rec.scientific_name, *rec.vernaculars):
-            forms[form.lower()] = form
+        forms.add(rec.scientific_name.lower())
+        forms.update(v.lower() for v in rec.vernaculars)
     return forms
 
 
