@@ -55,7 +55,7 @@ validator, the upstream client, resolution/grounding, extraction, and tracing.
 - [X] T013 [P] `resolve_taxon(name)` in `src/eol_genai_service/resolution/taxa.py`, preferring EOL page/search lookup over name matching (FR-003) (depends on T008, T011)
 - [ ] T014 Mellea-constrained extractor (Principle V) in `src/eol_genai_service/extraction/extract.py`: NL → `QueryIntent` (shape/taxon_refs/predicate_refs/rollup/direction_hint/hops) (depends on T006)
 - [X] T015 [P] neo4j→contract mapper in `src/eol_genai_service/upstream/mappers.py`: 4 value slots → `Value.kind`, provenance attach, `truncated`/`count` (depends on T006)
-- [ ] T016 [P] Versioned shape + repair registries in `src/eol_genai_service/shapes/registry.py` and `src/eol_genai_service/repair/rules.py` (id+version, testable lookup)
+- [X] T016 [P] Versioned shape + repair registries in `src/eol_genai_service/shapes/registry.py` and `src/eol_genai_service/repair/rules.py` (id+version, testable lookup)
 - [X] T017 Request pipeline + FastAPI `POST /v1/answer` in `src/eol_genai_service/api/app.py` wiring extract→resolve→shape→validator→run_cypher→map→Result (depends on T006, T010, T014, T015, T016)
 - [X] T018 [P] Validator contract tests (SC-002, SC-003 hard gates) in `tests/contract/test_validator.py`: positive + negative for MISSING_LIMIT, UNRESOLVED_URI, NOT_READ_ONLY; assert zero upstream call on violation (depends on T009, T010)
 
@@ -117,9 +117,9 @@ from `upstream_unavailable`), single call, no retry.
 **Independent Test**: "what habitat does the raccoon live in?" returns categorical habitat term(s)
 with provenance matching a hand-written query.
 
-- [ ] T029 [P] [US2] Integration test in `tests/integration/test_us2_categorical.py`
-- [ ] T030 [US2] `categorical_attribute` versioned shape in `src/eol_genai_service/shapes/categorical_attribute.py`
-- [ ] T031 [US2] `object_term` → categorical `Value` mapping in `src/eol_genai_service/upstream/mappers.py` and "categorical-queried-as-numeric → read object_term" repair rule in `src/eol_genai_service/repair/rules.py`
+- [X] T029 [P] [US2] Integration test in `tests/integration/test_us2_categorical.py`
+- [X] T030 [US2] `categorical_attribute` versioned shape in `src/eol_genai_service/shapes/categorical_attribute.py`
+- [X] T031 [US2] `object_term` → categorical `Value` mapping in `src/eol_genai_service/upstream/mappers.py` and "categorical-queried-as-numeric → read object_term" repair rule in `src/eol_genai_service/repair/rules.py`
 
 **Checkpoint**: US-1 + US-2 both independently functional.
 
@@ -132,9 +132,9 @@ with provenance matching a hand-written query.
 **Independent Test**: "what do sea otters eat?" returns prey (not predators) with provenance and
 correct `direction`, verified against a hand-written query.
 
-- [ ] T032 [P] [US3] Integration test in `tests/integration/test_us3_association.py` asserting direction = prey (FR-011)
-- [ ] T033 [US3] `association` versioned shape with direction assertion in `src/eol_genai_service/shapes/association.py`
-- [ ] T034 [US3] `object_page` → taxon `Value` mapping w/ mandatory `direction`, plus "inverted-direction → flip & re-assert" repair rule in `src/eol_genai_service/repair/rules.py`
+- [X] T032 [P] [US3] Integration test in `tests/integration/test_us3_association.py` asserting direction = prey (FR-011)
+- [X] T033 [US3] `association` versioned shape with direction assertion in `src/eol_genai_service/shapes/association.py`
+- [X] T034 [US3] `object_page` → taxon `Value` mapping w/ mandatory `direction`, plus "inverted-direction → flip & re-assert" repair rule in `src/eol_genai_service/repair/rules.py`
 
 **Checkpoint**: US-1..US-3 independently functional.
 

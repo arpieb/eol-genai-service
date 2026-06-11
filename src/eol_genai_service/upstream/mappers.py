@@ -1,20 +1,24 @@
-"""neo4j → contract mappers (T015 / T022).
+"""neo4j → contract mappers (T015 / T022 / T031 / T034).
 
 Translate raw EOL rows into service ``Statement``s — the boundary mapping (Constitution
-Principle I). No neo4j row shape escapes past here. ``single_fact`` rows carry a normalized
-measurement, mapped to a :class:`QuantitativeValue` (FR-005), with provenance attached (FR-004).
+Principle I). No neo4j row shape escapes past here. Each value slot maps to its contract value
+kind (FR-005): ``normal_measurement`` → quantitative, ``object_term`` → categorical,
+``object_page`` → taxon (with asserted direction, FR-011). Provenance is attached (FR-004).
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 
 from eol_genai_service.contract import (
+    CategoricalValue,
     Predicate,
     Provenance,
     QuantitativeValue,
     Statement,
     Taxon,
+    TaxonValue,
 )
 
 
@@ -37,6 +41,48 @@ def map_single_fact_rows(
                     units=str(row["units"]),
                     normalized=True,
                 ),
+                provenance=_provenance(row),
+            )
+        )
+    return statements
+
+
+def map_categorical_rows(
+    rows: Sequence[dict[str, object]], subject: Taxon, predicate: Predicate
+) -> list[Statement]:
+    """Map ``object_term`` rows to categorical statements (US-2, FR-005)."""
+    statements: list[Statement] = []
+    for row in rows:
+        term = Predicate(uri=str(row["term_uri"]), name=str(row["term_name"]), type="categorical")
+        statements.append(
+            Statement(
+                subject=subject,
+                predicate=predicate,
+                value=CategoricalValue(term=term),
+                provenance=_provenance(row),
+            )
+        )
+    return statements
+
+
+def map_association_rows(
+    rows: Sequence[dict[str, object]],
+    subject: Taxon,
+    predicate: Predicate,
+    direction: Literal["subject_to_object", "object_to_subject"],
+) -> list[Statement]:
+    """Map ``object_page`` rows to taxon-valued statements with direction (US-3, FR-011)."""
+    statements: list[Statement] = []
+    for row in rows:
+        partner = Taxon(
+            page_id=int(row["partner_page_id"]),  # type: ignore[arg-type]
+            scientific_name=str(row["partner_name"]),
+        )
+        statements.append(
+            Statement(
+                subject=subject,
+                predicate=predicate,
+                value=TaxonValue(taxon=partner, direction=direction),
                 provenance=_provenance(row),
             )
         )

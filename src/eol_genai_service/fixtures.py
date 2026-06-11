@@ -35,6 +35,18 @@ PREDICATE_CATALOG: list[PredicateTerm] = [
         type="measurement",
         aliases=("body length", "length", "long", "size"),
     ),
+    PredicateTerm(
+        uri="ENVO_00000428",
+        name="habitat",
+        type="categorical",
+        aliases=("habitat", "lives in", "live in", "where does", "biome", "environment"),
+    ),
+    PredicateTerm(
+        uri="RO_0002470",
+        name="eats",
+        type="association",
+        aliases=("eats", "eat", "what do", "what does", "preys on", "feeds on", "diet"),
+    ),
 ]
 
 TAXON_CATALOG: list[TaxonRecord] = [
@@ -67,6 +79,26 @@ EOL_ROWS: dict[tuple[int, str], list[dict[str, object]]] = {
             "resource_id": 42,
             "resource_name": "PanTHERIA",
             "citation": "Jones et al. 2009",
+        }
+    ],
+    # US-2 categorical: raccoon habitat (object_term value rows).
+    (328598, "ENVO_00000428"): [
+        {
+            "term_uri": "ENVO_01000174",
+            "term_name": "forest biome",
+            "resource_id": 7,
+            "resource_name": "EOL Dynamic Hierarchy",
+            "citation": None,
+        }
+    ],
+    # US-3 association: sea otter eats sea urchin (object_page partner rows).
+    (328583, "RO_0002470"): [
+        {
+            "partner_page_id": 598454,
+            "partner_name": "Strongylocentrotus",
+            "resource_id": 11,
+            "resource_name": "GloBI",
+            "citation": "Interaction record",
         }
     ],
 }

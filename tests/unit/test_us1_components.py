@@ -30,7 +30,7 @@ def test_single_fact_query_uses_integer_page_id_no_injection():
 
 def test_shape_registry_versions_single_fact():
     assert shape_version("single_fact") is not None
-    assert shape_version("association") is None  # not modeled yet
+    assert shape_version("lineage") is None  # not modeled yet
 
 
 def test_extractor_recognizes_single_fact_and_novel():
