@@ -1,6 +1,28 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 1.0.0 → 1.1.0
+Rationale: MINOR — materially expanded guidance on model selection. Clarifies that
+Principle IV's "general frontier LLM" requirement binds the client orchestrator and the
+grounding pipeline, while the scoped service-side extractor (Principle V) MAY use a smaller
+or locally-hosted constrained model (frontier configurable). No principle removed or
+redefined; the contract, validator, determinism, retrieval, observability, and upstream
+rules are unchanged.
+
+Modified principles:
+- IV. General Model + Domain Retrieval — added "Scope of the frontier-LLM requirement"
+- V. Scoped Model Authority — added the small/local-model latitude note
+
+Templates requiring updates:
+- plan-template / spec-template / tasks-template — ✅ no change (model-agnostic)
+- specs/001-eol-trait-query/research.md (R3) and src/eol_genai_service/config.py — updated to
+  default the service extractor to a local Granite (Mellea/Ollama) backend, frontier configurable
+
+Follow-up TODOs: none
+
+---
+PRIOR REPORT (v1.0.0)
+=====================
 Version change: (uninitialized template) → 1.0.0
 Rationale: Initial ratification of the project constitution. MAJOR baseline (1.0.0)
 because this establishes the governing principle set for the first time.
@@ -70,15 +92,27 @@ Reasoning and orchestration MUST use a general frontier LLM. Domain specificity 
 retrieval over EOL's own term tables (embeddings), never in fine-tuned model weights.
 Term→URI grounding — the hard problem — MUST be solved by retrieval, not training.
 
+**Scope of the frontier-LLM requirement**: "Reasoning and orchestration" binds the *client
+orchestrator* (planning the novel multi-hop long tail) and the grounding pipeline. The *scoped
+service-side extractor* (Principle V) performs a narrow, constrained-decoded task — filling a
+typed intent schema and spotting surface mentions, with retrieval doing the domain grounding —
+and therefore MAY run on a smaller or locally-hosted constrained model. A general frontier
+model remains a supported, configurable choice for the service extractor (e.g. for the hard
+disambiguation/repair tail), but is NOT required for it.
+
 **Rationale**: Retrieval keeps domain knowledge inspectable, hot-updatable, and decoupled
-from model lifecycles; baking it into weights makes it opaque and expensive to change.
+from model lifecycles; baking it into weights makes it opaque and expensive to change. The
+frontier requirement is reserved for the work that actually needs frontier reasoning — novel
+orchestration — not the bounded extraction step a small constrained model handles cheaply,
+locally, and without an external dependency on the hot path.
 
 ### V. Scoped Model Authority
 
 The service-side LLM is scoped to extraction, term resolution, and repair of shapes the
 service owns. It MUST NOT grow into a general agent that plans novel multi-hop reasoning
 chains; that work stays with the calling (client) model. The service model is kept on a
-short leash.
+short leash. Because its task is narrow and constrained-decoded, this model MAY be small
+and/or locally hosted (see Principle IV); a frontier model is configurable for the hard tail.
 
 **Rationale**: A narrowly scoped service model is auditable and bounded. An open-ended one
 becomes an unaccountable agent whose behavior cannot be reasoned about or tested.
@@ -146,4 +180,4 @@ conflicts, the constitution wins.
 - **Runtime guidance**: `CLAUDE.md` provides agent-facing runtime development guidance and
   defers to this constitution on principle questions.
 
-**Version**: 1.0.0 | **Ratified**: 2026-06-11 | **Last Amended**: 2026-06-11
+**Version**: 1.1.0 | **Ratified**: 2026-06-11 | **Last Amended**: 2026-06-11

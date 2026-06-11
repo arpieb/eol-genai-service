@@ -29,8 +29,13 @@ class Settings(BaseModel):
     upstream_timeout_seconds: float = 10.0
     upstream_max_retries: int = 2  # bounded retry with backoff, never a tight loop (FR-013)
 
-    # Models (Principle IV — configurable, non-load-bearing). See research.md R2/R3.
-    service_model_id: str = "claude-sonnet-4-6"
+    # Models (configurable, non-load-bearing). See research.md R2/R3 and constitution v1.1.0.
+    # The scoped service-side extractor (Principle V) defaults to Mellea's local Granite/Ollama
+    # backend — no API key, offline, cheap. A frontier Claude model is a drop-in configurable
+    # upgrade for the hard disambiguation/repair tail (set EOL_SERVICE_MODEL_BACKEND=anthropic
+    # and EOL_SERVICE_MODEL_ID=claude-sonnet-4-6).
+    service_model_backend: str = "ollama"  # "ollama" (local default) | "anthropic"
+    service_model_id: str = "granite4.1:3b"
     embeddings_model_id: str = "voyage-3-large"
 
     @classmethod
@@ -59,6 +64,9 @@ class Settings(BaseModel):
             ),
             upstream_max_retries=_int(
                 "EOL_UPSTREAM_MAX_RETRIES", cls.model_fields["upstream_max_retries"].default
+            ),
+            service_model_backend=os.getenv(
+                "EOL_SERVICE_MODEL_BACKEND", cls.model_fields["service_model_backend"].default
             ),
             service_model_id=os.getenv(
                 "EOL_SERVICE_MODEL_ID", cls.model_fields["service_model_id"].default
