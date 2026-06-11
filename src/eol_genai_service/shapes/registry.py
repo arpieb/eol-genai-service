@@ -12,6 +12,7 @@ from eol_genai_service.shapes import (
     association,
     categorical_attribute,
     lineage,
+    n_hop_chain,
     single_fact,
 )
 
@@ -21,6 +22,7 @@ SHAPE_VERSIONS: dict[str, str] = {
     "association": association.VERSION,
     "aggregate_count": aggregate_count.VERSION,
     "lineage": lineage.VERSION,
+    "n_hop_chain": n_hop_chain.VERSION,
 }
 
 

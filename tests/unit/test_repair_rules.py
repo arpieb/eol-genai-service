@@ -43,6 +43,7 @@ def test_shape_registry_covers_all_modeled_shapes():
         "association",
         "aggregate_count",
         "lineage",
+        "n_hop_chain",
     ):
         assert shape_version(shape) is not None, shape
-    assert shape_version("n_hop_chain") is None  # US-7, not modeled yet
+    assert shape_version("not_a_real_shape") is None
