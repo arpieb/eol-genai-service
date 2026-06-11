@@ -82,8 +82,6 @@ def validate(query: str, resolved_uris: Iterable[str]) -> Verdict:
 
     # 3. Read-only
     for match in _WRITE_RE.finditer(scannable):
-        violations.append(
-            Violation("NOT_READ_ONLY", f"write clause {match.group(0).upper()!r}")
-        )
+        violations.append(Violation("NOT_READ_ONLY", f"write clause {match.group(0).upper()!r}"))
 
     return Verdict(ok=not violations, violations=tuple(violations))

@@ -7,9 +7,11 @@ from eol_genai_service.upstream import EolCypherClient, UpstreamUnavailable
 
 
 def _client(transport, **overrides):
-    settings = Settings(result_cap=overrides.pop("result_cap", 3),
-                        upstream_max_retries=overrides.pop("upstream_max_retries", 2),
-                        **overrides)
+    settings = Settings(
+        result_cap=overrides.pop("result_cap", 3),
+        upstream_max_retries=overrides.pop("upstream_max_retries", 2),
+        **overrides,
+    )
     return EolCypherClient(settings, transport)
 
 

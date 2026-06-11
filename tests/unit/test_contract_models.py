@@ -46,8 +46,11 @@ def test_answer_round_trips_and_keeps_truncated_flag():
 
 
 def test_result_union_discriminates_by_outcome():
-    for model in (_sea_otter_mass_answer(), NoRecordsResult(),
-                  UpstreamUnavailableResult(detail="timeout")):
+    for model in (
+        _sea_otter_mass_answer(),
+        NoRecordsResult(),
+        UpstreamUnavailableResult(detail="timeout"),
+    ):
         reparsed = _result_adapter.validate_json(model.model_dump_json())
         assert reparsed.outcome == model.outcome
 

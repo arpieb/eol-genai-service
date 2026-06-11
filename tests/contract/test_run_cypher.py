@@ -32,9 +32,7 @@ RESOLVED = {"VT_0001259"}
 
 def test_valid_query_reaches_client_once():
     client = SpyClient()
-    result = run_cypher(
-        "MATCH (:Term {uri:'VT_0001259'}) RETURN 1 LIMIT 10", RESOLVED, client
-    )
+    result = run_cypher("MATCH (:Term {uri:'VT_0001259'}) RETURN 1 LIMIT 10", RESOLVED, client)
     assert client.calls == 1
     assert result.rows == [{"p": 1}]
 

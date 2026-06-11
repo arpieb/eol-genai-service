@@ -23,9 +23,7 @@ class ValidatorRejection(Exception):
         super().__init__(f"query rejected by validator: {codes}")
 
 
-def run_cypher(
-    query: str, resolved_uris: Iterable[str], client: EolCypherClient
-) -> UpstreamResult:
+def run_cypher(query: str, resolved_uris: Iterable[str], client: EolCypherClient) -> UpstreamResult:
     """Validate then execute. The validator is on the only path to ``client.fetch``."""
     verdict = validate(query, resolved_uris)
     if not verdict.ok:
