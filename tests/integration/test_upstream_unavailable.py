@@ -1,0 +1,62 @@
+"""FR-013 upstream-unavailable integration test (T052).
+
+Timeout / 5xx / transport error → an explicit ``upstream_unavailable`` outcome, distinct from
+``no_records`` (FR-010) and from internal errors; bounded retry with backoff, never a tight loop.
+"""
+
+from eol_genai_service.config import Settings
+from eol_genai_service.contract import AnswerRequest
+from eol_genai_service.extraction.extract import RuleBasedExtractor
+from eol_genai_service.fixtures import (
+    PREDICATE_CATALOG,
+    TAXON_CATALOG,
+    build_offline_deps,
+    predicate_surface_forms,
+    taxon_surface_forms,
+)
+from eol_genai_service.orchestration.pipeline import PipelineDeps, answer
+from eol_genai_service.resolution.predicates import CatalogPredicateResolver
+from eol_genai_service.resolution.taxa import CatalogTaxonResolver
+from eol_genai_service.upstream.client import EolCypherClient
+
+
+def _deps_with(transport, max_retries=2):
+    settings = Settings(upstream_max_retries=max_retries)
+    return PipelineDeps(
+        extractor=RuleBasedExtractor(predicate_surface_forms(), taxon_surface_forms()),
+        predicate_resolver=CatalogPredicateResolver(PREDICATE_CATALOG),
+        taxon_resolver=CatalogTaxonResolver(TAXON_CATALOG),
+        client=EolCypherClient(settings, transport),
+        settings=settings,
+    )
+
+
+def test_timeout_maps_to_upstream_unavailable():
+    def failing(q, fmt):
+        raise TimeoutError("eol timed out")
+
+    result = answer(AnswerRequest(question="how heavy is a sea otter?"), _deps_with(failing))
+    assert result.outcome == "upstream_unavailable"
+    assert "timed out" in result.detail
+
+
+def test_retry_is_bounded_not_a_tight_loop():
+    calls = {"n": 0}
+
+    def failing(q, fmt):
+        calls["n"] += 1
+        raise ConnectionError("5xx")
+
+    answer(AnswerRequest(question="how heavy is a sea otter?"), _deps_with(failing, max_retries=2))
+    assert calls["n"] == 3  # initial + exactly 2 retries; bounded
+
+
+def test_upstream_unavailable_is_distinct_from_no_records():
+    unavailable = answer(
+        AnswerRequest(question="how heavy is a sea otter?"),
+        _deps_with(lambda q, fmt: (_ for _ in ()).throw(TimeoutError("down"))),
+    )
+    no_records = answer(AnswerRequest(question="how heavy is a raccoon?"), build_offline_deps())
+    assert unavailable.outcome == "upstream_unavailable"
+    assert no_records.outcome == "no_records"
+    assert unavailable.outcome != no_records.outcome

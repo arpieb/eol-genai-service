@@ -38,10 +38,18 @@ class Span:
 
 
 @contextmanager
-def span(name: str, layer: Layer, *, model_id: str | None = None) -> Iterator[Span]:
+def span(
+    name: str,
+    layer: Layer,
+    *,
+    model_id: str | None = None,
+    sink: list[Span] | None = None,
+) -> Iterator[Span]:
     """Open a layer-tagged span, timing the block and capturing any error.
 
     The caller may set ``tokens_in``/``tokens_out``/``cost`` on the yielded span for LLM calls.
+    If ``sink`` is provided, the completed span is appended to it (the seam an OpenTelemetry
+    exporter or in-memory collector plugs into).
     """
     s = Span(name=name, layer=layer, model_id=model_id)
     start = time.perf_counter()
@@ -52,3 +60,31 @@ def span(name: str, layer: Layer, *, model_id: str | None = None) -> Iterator[Sp
         raise
     finally:
         s.latency_ms = (time.perf_counter() - start) * 1000.0
+        if sink is not None:
+            sink.append(s)
+
+
+@dataclass
+class LayerTotals:
+    """Aggregated attribution for one layer."""
+
+    spans: int = 0
+    latency_ms: float = 0.0
+    tokens_in: int = 0
+    tokens_out: int = 0
+    cost: float = 0.0
+    errors: int = 0
+
+
+def totals_by_layer(spans: list[Span]) -> dict[Layer, LayerTotals]:
+    """Attribute latency, tokens, cost, and errors to each layer (Constitution Principle VI)."""
+    out: dict[Layer, LayerTotals] = {}
+    for s in spans:
+        t = out.setdefault(s.layer, LayerTotals())
+        t.spans += 1
+        t.latency_ms += s.latency_ms
+        t.tokens_in += s.tokens_in
+        t.tokens_out += s.tokens_out
+        t.cost += s.cost
+        t.errors += 1 if s.error else 0
+    return out

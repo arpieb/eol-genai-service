@@ -190,14 +190,14 @@ sub-types (wingspan, body mass), matching a hand-written roll-up query.
 
 **Purpose**: Success-criteria hard gates, upstream-care, and observability assertions across stories.
 
-- [ ] T045 [P] SC-001 accuracy harness vs hand-written golden queries (≥90% over US-1..US-5) in `tests/integration/test_accuracy_golden.py`
-- [ ] T046 [P] SC-005 truncation suite (flag always set; no silent partial, incl. per-hop) in `tests/integration/test_truncation.py`
-- [ ] T047 [P] SC-006 latency check (p95 ≤ 5 s, warm cache) in `tests/integration/test_latency.py`
-- [ ] T048 [P] Term-list cache TTL/invalidation + catalog rebuild command (Principle VII) in `src/eol_genai_service/resolution/index.py`
-- [ ] T049 [P] Repair-loop miss capture to grow the rule set (research.md R8) in `src/eol_genai_service/repair/capture.py`
-- [ ] T050 [P] Observability assertions (layer tags + per-layer cost/latency attribution) in `tests/integration/test_observability.py`
-- [ ] T051 [P] Run quickstart.md validation pass and update docs/README
-- [ ] T052 [P] FR-013 upstream-unavailable integration test in `tests/integration/test_upstream_unavailable.py`: timeout / 5xx / transport error → `upstream_unavailable` outcome, asserted **distinct** from `no_records` (US-8) and internal errors; verify bounded retry-with-backoff occurs and is **not** a tight loop
+- [X] T045 [P] SC-001 accuracy harness vs hand-written golden queries (≥90% over US-1..US-5) in `tests/integration/test_accuracy_golden.py`
+- [X] T046 [P] SC-005 truncation suite (flag always set; no silent partial, incl. per-hop) in `tests/integration/test_truncation.py`
+- [X] T047 [P] SC-006 latency check (p95 ≤ 5 s, warm cache) in `tests/integration/test_latency.py`
+- [X] T048 [P] Term-list cache TTL/invalidation + catalog rebuild command (Principle VII) in `src/eol_genai_service/resolution/index.py`
+- [X] T049 [P] Repair-loop miss capture to grow the rule set (research.md R8) in `src/eol_genai_service/repair/capture.py`
+- [X] T050 [P] Observability assertions (layer tags + per-layer cost/latency attribution) in `tests/integration/test_observability.py`
+- [X] T051 [P] Run quickstart.md validation pass and update docs/README
+- [X] T052 [P] FR-013 upstream-unavailable integration test in `tests/integration/test_upstream_unavailable.py`: timeout / 5xx / transport error → `upstream_unavailable` outcome, asserted **distinct** from `no_records` (US-8) and internal errors; verify bounded retry-with-backoff occurs and is **not** a tight loop
 
 ---
 
