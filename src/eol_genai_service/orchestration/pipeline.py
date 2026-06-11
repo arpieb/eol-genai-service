@@ -24,18 +24,32 @@ from eol_genai_service.contract import (
     Taxon,
     UpstreamUnavailableResult,
 )
+from eol_genai_service.contract import Statement
 from eol_genai_service.extraction.extract import Extractor
 from eol_genai_service.resolution.predicates import PredicateResolver
 from eol_genai_service.resolution.taxa import TaxonResolver
+from eol_genai_service.shapes.association import association_direction, build_association_query
+from eol_genai_service.shapes.categorical_attribute import build_categorical_query
 from eol_genai_service.shapes.single_fact import build_single_fact_query
 from eol_genai_service.upstream.client import EolCypherClient, UpstreamUnavailable
-from eol_genai_service.upstream.mappers import map_single_fact_rows
+from eol_genai_service.upstream.mappers import (
+    map_association_rows,
+    map_categorical_rows,
+    map_single_fact_rows,
+)
 from eol_genai_service.upstream.run_cypher import run_cypher
 
 # Resolution must clear this confidence bar; otherwise we ask rather than guess (SC-004 hard gate).
 CONFIDENCE_THRESHOLD = 0.85
 # A second candidate within this margin of the top makes the choice ambiguous.
 AMBIGUITY_MARGIN = 0.15
+
+# The concrete query shape is chosen by the resolved predicate's type (FR-005), not guessed.
+_SHAPE_BY_PREDICATE_TYPE = {
+    "measurement": "single_fact",
+    "categorical": "categorical_attribute",
+    "association": "association",
+}
 
 
 @dataclass(frozen=True)
@@ -50,9 +64,9 @@ class PipelineDeps:
 def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
     """Answer one natural-language question, returning one of the five contract outcomes."""
     intent = deps.extractor.extract(request.question)
-    if intent.shape != "single_fact":
-        # Only US-1 is modeled so far; everything else is out of capability (US-7 territory).
-        return OutOfCapabilityResult(reason=f"shape {intent.shape!r} not yet modeled")
+    if intent.shape == "novel":
+        # No modeled single-hop shape matched (US-7 territory); never fabricate an answer.
+        return OutOfCapabilityResult(reason="question is not a modeled single-hop shape")
 
     # --- Resolve the taxon (honor a prior disambiguation choice first; FR-014) ---
     subject = _resolve_subject(request, intent, deps)
@@ -64,8 +78,14 @@ def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
     if isinstance(predicate, NeedsClarificationResult):
         return predicate
 
+    # The concrete shape follows from the predicate type — read the correct value slot (FR-005).
+    shape = _SHAPE_BY_PREDICATE_TYPE.get(predicate.type)
+    if shape is None:
+        return OutOfCapabilityResult(reason=f"predicate type {predicate.type!r} not modeled")
+
     # --- Build, validate, and execute (single path to EOL) ---
-    query = build_single_fact_query(subject.page_id, predicate.uri, deps.settings.result_cap)
+    cap = deps.settings.result_cap
+    query = _build_query(shape, subject.page_id, predicate.uri, cap)
     try:
         upstream = run_cypher(query, {predicate.uri}, deps.client)
     except UpstreamUnavailable as exc:
@@ -74,12 +94,24 @@ def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
     if not upstream.rows:
         return NoRecordsResult()
 
-    statements = map_single_fact_rows(upstream.rows, subject, predicate)
-    return AnswerResult(
-        statements=statements,
-        truncated=upstream.truncated,
-        cap=deps.settings.result_cap,
-    )
+    statements = _map(shape, upstream.rows, subject, predicate)
+    return AnswerResult(statements=statements, truncated=upstream.truncated, cap=cap)
+
+
+def _build_query(shape: str, page_id: int, uri: str, cap: int) -> str:
+    if shape == "single_fact":
+        return build_single_fact_query(page_id, uri, cap)
+    if shape == "categorical_attribute":
+        return build_categorical_query(page_id, uri, cap)
+    return build_association_query(page_id, uri, cap)
+
+
+def _map(shape: str, rows, subject: Taxon, predicate: Predicate) -> list[Statement]:
+    if shape == "single_fact":
+        return map_single_fact_rows(rows, subject, predicate)
+    if shape == "categorical_attribute":
+        return map_categorical_rows(rows, subject, predicate)
+    return map_association_rows(rows, subject, predicate, association_direction(predicate.uri))
 
 
 def _resolve_subject(
