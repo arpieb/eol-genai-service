@@ -36,7 +36,14 @@ class Settings(BaseModel):
     # and EOL_SERVICE_MODEL_ID=claude-sonnet-4-6).
     service_model_backend: str = "ollama"  # "ollama" (local default) | "anthropic"
     service_model_id: str = "granite4.1:3b"
-    embeddings_model_id: str = "voyage-3-large"
+    # Embeddings (the term→URI grounding, Principle IV — load-bearing, so subject to a recall@k
+    # bake-off before scale; see research R2). Default to a local Ollama model: no key, offline,
+    # and off the hot path (every query embeds the user's phrase). Voyage is a configurable upgrade
+    # (set EOL_EMBEDDINGS_BACKEND=voyage and EOL_EMBEDDINGS_MODEL_ID=voyage-3-large).
+    # NOTE: catalog and query embeddings MUST use the same model — changing it requires an index
+    # rebuild (CatalogIndex.rebuild()).
+    embeddings_backend: str = "ollama"  # "ollama" (local default) | "voyage"
+    embeddings_model_id: str = "mxbai-embed-large"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -70,6 +77,9 @@ class Settings(BaseModel):
             ),
             service_model_id=os.getenv(
                 "EOL_SERVICE_MODEL_ID", cls.model_fields["service_model_id"].default
+            ),
+            embeddings_backend=os.getenv(
+                "EOL_EMBEDDINGS_BACKEND", cls.model_fields["embeddings_backend"].default
             ),
             embeddings_model_id=os.getenv(
                 "EOL_EMBEDDINGS_MODEL_ID", cls.model_fields["embeddings_model_id"].default
