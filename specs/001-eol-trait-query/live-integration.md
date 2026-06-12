@@ -13,16 +13,19 @@ the offline extractor/resolvers as a useful intermediate milestone.
 
 - [ ] **EOL JWT** from the EOL maintainer → set `EOL_JWT` (never commit; `.env*` is `.gitignore`'d).
 - [ ] `EOL_CYPHER_URL` confirmed (`https://eol.org/service/cypher`).
-- [ ] **Voyage API key** → `EMBEDDINGS_API_KEY` (embeddings default stays Voyage `voyage-3-large`).
-- [ ] **Ollama** running with `granite4.1:3b` pulled (`ollama pull granite4.1:3b`) for the service
-  extractor default. No Anthropic key needed unless opting into the frontier backend
-  (`EOL_SERVICE_MODEL_BACKEND=anthropic` + `ANTHROPIC_API_KEY`).
+- [ ] **Ollama** running with **two models pulled**: `granite4.1:3b` (service extractor) and
+  `mxbai-embed-large` (embeddings) — `ollama pull granite4.1:3b && ollama pull mxbai-embed-large`.
+  Both defaults are local: no Anthropic or Voyage key needed for the common path.
+- [ ] *(Optional upgrades)* Frontier extractor backend → `EOL_SERVICE_MODEL_BACKEND=anthropic` +
+  `ANTHROPIC_API_KEY`; hosted embeddings → `EOL_EMBEDDINGS_BACKEND=voyage` + Voyage key in
+  `EMBEDDINGS_API_KEY`.
 
 ## 1. Dependencies (T002 / T003)
 
 - [ ] `uv add mellea anthropic opentelemetry-sdk opentelemetry-api mcp` (T002).
-- [ ] `uv add voyageai` (+ local fallback `sentence-transformers`) and a vector index
-  `faiss-cpu` **or** `sqlite-vec` (T003, per research R2).
+- [ ] `uv add ollama` (local embeddings + Granite via the Ollama client) and a vector index
+  `faiss-cpu` **or** `sqlite-vec` (T003, per research R2). `uv add voyageai` only if enabling the
+  hosted-embeddings upgrade.
 - [ ] `uv sync` green; CI lockfile check (`uv sync --locked`) still passes.
 
 ## 2. Live EOL transport (deferred half of T008) — unblocks everything
@@ -41,9 +44,16 @@ the offline extractor/resolvers as a useful intermediate milestone.
 
 - [ ] **Enumerate** predicate/value `Term`s from the self-describing graph
   (`Term {type:"measurement"}`, `{type:"association"}`, value terms) via the live transport.
-- [ ] **Embed** with Voyage; persist a local vector index (FAISS/sqlite-vec), keyed by catalog
+- [ ] **Embed** with the configured embeddings backend (default: local `mxbai-embed-large` on
+  Ollama); persist a local vector index (FAISS/sqlite-vec), keyed by catalog **and embedding-model**
   version. Wire it behind the existing **`CatalogIndex`** cache (`resolution/index.py` — TTL/rebuild
-  already done).
+  already done). Catalog and query embeddings MUST use the same model; a model change forces a
+  `CatalogIndex.rebuild()`.
+- [ ] **Spike — embeddings recall@k bake-off** (research R2): embeddings are load-bearing
+  (drive SC-001/SC-004), so measure the rank of the correct ontology URI for paraphrased/synonym
+  queries on a labeled term set, **local `mxbai-embed-large` vs Voyage `voyage-3-large`**. Keep the
+  local default if it clears the bar; otherwise flip `EOL_EMBEDDINGS_BACKEND=voyage` for the hard
+  grounding tail.
 - [ ] Implement **embedding-backed `PredicateResolver`/`TaxonResolver`** (replacing `Catalog*Resolver`)
   returning the same `PredicateCandidate`/`TaxonCandidate` shapes + scores. `resolve_taxon` prefers
   EOL page/search lookup (FR-003).

@@ -27,23 +27,38 @@ paraphrases and synonyms.
 ## R2. Embedding model + vector index
 
 **Decision**: Use a configurable embeddings model with a **local, persisted vector index**
-(e.g., FAISS or `sqlite-vec`) over the term catalog. Default to a hosted embeddings model where
-quality matters (Voyage AI is Anthropic's recommended embeddings provider) with a local
-`sentence-transformers` model as a self-contained fallback. The index is a build artifact keyed by
-catalog version; rebuilds are offline and do not hit EOL at query time.
+(e.g., FAISS or `sqlite-vec`) over the term catalog. Default to a **local embedding model served on
+the Ollama backend we already run** for the service extractor — no API key, offline, and off the
+hot path. A hosted retrieval-tuned model (Voyage AI, Anthropic's recommended provider) is a
+configurable upgrade. The index is a build artifact keyed by catalog version; rebuilds are offline
+and do not hit EOL at query time.
 
-**Pinned defaults** (override via config): embeddings `voyage-3-large` (Voyage AI's general-purpose
-model — confirm the exact current model name against Voyage's docs at integration time, since
-Anthropic recommends Voyage but does not enumerate its model catalog), with a local
-`sentence-transformers` `all-MiniLM-L6-v2` as the self-contained fallback.
+**Pinned default** (override via config): embeddings `mxbai-embed-large` via the local Ollama
+backend (alternatives: `nomic-embed-text`, `bge-m3`). Voyage `voyage-3-large` is a drop-in upgrade
+(`EOL_EMBEDDINGS_BACKEND=voyage`).
 
-**Rationale**: The catalog is small (10^3–10^5 terms), so a local index gives sub-millisecond
-lookups, zero per-query upstream load (Principle VII), and full offline testability. Keeping the
-embeddings model behind a thin interface satisfies "domain specificity lives in retrieval" without
-hard-coupling to one vendor.
+**Why local-by-default, consistent with R3**: Embeddings are the **grounding** — term→URI is the
+hard problem (Principle IV) — but the *per-query* cost is embedding the user's phrase, which would
+be a network round-trip to a hosted provider on **every** request (latency vs SC-006, cost, key on
+the hot path). The catalog is small (10^3–10^5 terms) and bounded, with a confidence threshold +
+disambiguation fallback catching the tail, so a strong local model is very likely sufficient.
 
-**Alternatives considered**: A managed vector DB (Pinecone/Weaviate) — rejected as operational
-overhead unjustified at this catalog size. Embedding at query time without persistence — rejected,
+**Caveat — embeddings are load-bearing, so prove it**: unlike the extractor (R3), embedding quality
+directly drives SC-001/SC-004. Before trusting the local default at scale, run a **recall@k
+bake-off** (local vs Voyage) measuring the rank of the correct ontology URI for paraphrased/synonym
+queries on a labeled term set; keep Voyage configurable for the hard grounding tail. **Catalog and
+query embeddings MUST use the same model** — switching providers invalidates the persisted index
+(requires `CatalogIndex.rebuild()`).
+
+**Rationale**: The catalog is small, so a local index gives sub-millisecond lookups, zero per-query
+upstream load (Principle VII), and full offline testability. Keeping the embeddings model behind a
+thin interface satisfies "domain specificity lives in retrieval" without hard-coupling to one
+vendor — and serving it on the existing Ollama stack adds no infrastructure.
+
+**Alternatives considered**: Hosted embeddings (Voyage) as the *default* — rejected as the default
+(puts an external provider + key on the per-query hot path for a task a local model handles), kept
+configurable. A managed vector DB (Pinecone/Weaviate) — rejected as operational overhead unjustified
+at this catalog size. Embedding at query time without persistence of the catalog — rejected,
 wasteful and slower.
 
 ## R3. Service-side LLM + constrained decoding
