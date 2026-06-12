@@ -77,6 +77,12 @@ def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
     if intent.shape == "lineage":
         return _answer_lineage(request, intent, deps)
 
+    # A single-hop shape needs both a taxon and a predicate reference. An extractor may return
+    # neither (e.g. an under-specified question); without something to ground, we cannot answer —
+    # out_of_capability rather than guessing or erroring.
+    if not intent.taxon_refs or not intent.predicate_refs:
+        return OutOfCapabilityResult(reason="question lacks a taxon and/or attribute to resolve")
+
     # --- Resolve the taxon (honor a prior disambiguation choice first; FR-014) ---
     subject = _resolve_subject(request, intent, deps)
     if isinstance(subject, NeedsClarificationResult):
@@ -109,6 +115,8 @@ def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
 
 def _answer_count(intent, deps: PipelineDeps) -> Result:
     """US-4: count taxa with a recorded value for a (rolled-up) predicate. No taxon involved."""
+    if not intent.predicate_refs:
+        return OutOfCapabilityResult(reason="count question lacks a recognizable attribute")
     predicate = _resolve_predicate(intent, deps)
     if isinstance(predicate, NeedsClarificationResult):
         return predicate
@@ -125,6 +133,8 @@ def _answer_count(intent, deps: PipelineDeps) -> Result:
 
 def _answer_lineage(request: AnswerRequest, intent, deps: PipelineDeps) -> Result:
     """US-5: return a taxon's ancestor chain. No predicate involved (graph traversal, no URI)."""
+    if request.chosen is None and not intent.taxon_refs:
+        return OutOfCapabilityResult(reason="lineage question lacks a recognizable taxon")
     subject = _resolve_subject(request, intent, deps)
     if isinstance(subject, NeedsClarificationResult):
         return subject
@@ -166,6 +176,8 @@ def _resolve_subject(
         taxon = deps.taxon_resolver.by_page_id(request.chosen.page_id)
         if taxon is not None:
             return taxon
+    if not intent.taxon_refs:  # no extracted taxon and no valid choice — nothing to resolve
+        return NeedsClarificationResult(candidates=CandidateSet(kind="taxon", items=[]))
     candidates = deps.taxon_resolver.resolve(intent.taxon_refs[0])
     if _is_confident(candidates):
         top = candidates[0]

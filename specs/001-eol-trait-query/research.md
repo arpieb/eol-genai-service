@@ -86,6 +86,19 @@ guarantee holds on the Ollama/Granite backend (structured-output fidelity can va
 (2) measure extraction quality on the ambiguous tail (US-6/US-7 phrasings) at 3B — keep the frontier
 escape hatch for cases where it underperforms.
 
+**Spike results (T014, `mellea==0.6.0` on `granite4.1:3b`)**:
+- *Spike 1 — PASS.* `m.instruct(prompt, format=PydanticModel)` always returns schema-valid JSON
+  that parses into the typed intent; the extractor still falls back to `novel` on any parse error.
+- *Spike 2 — canonical shapes (US-1..US-5) extract correctly* at 3B. Two tail findings:
+  (a) generic "size" + a named taxon initially mis-routed to `aggregate_count`; **fixed by prompt
+  refinement** (aggregate_count gated on counting questions with no named taxon). (b) genuinely
+  compositional questions (US-7) may be flattened to a single shape rather than `novel` —
+  **accepted as safe**: their abstract/unnamed refs fail to resolve confidently, so the pipeline
+  returns needs_clarification/out_of_capability, never a fabricated answer (the guarantee lives in
+  resolution + the validator, not the extractor). The frontier backend is the configured upgrade.
+- *Robustness*: Granite occasionally returns empty `predicate_refs`/`taxon_refs`; the pipeline now
+  guards these → `out_of_capability` rather than erroring.
+
 **Alternatives considered**: A general frontier model as the *default* for the extractor — rejected
 as the default (adds an API-key dependency and per-call cost to the common path for a task a small
 constrained model handles) but retained as a configurable option. Free-form JSON prompting without
