@@ -53,7 +53,7 @@ validator, the upstream client, resolution/grounding, extraction, and tracing.
 - [ ] T011 Embedded term catalog in `src/eol_genai_service/resolution/index.py`: enumerate predicate/value `Term`s from the graph, embed, persist, query (build + lookup) per research.md R1/R2
 - [X] T012 [P] `resolve_predicate(text)` in `src/eol_genai_service/resolution/predicates.py` returning ranked `Term` candidates with scores (depends on T011)
 - [X] T013 [P] `resolve_taxon(name)` in `src/eol_genai_service/resolution/taxa.py`, preferring EOL page/search lookup over name matching (FR-003) (depends on T008, T011)
-- [ ] T014 Mellea-constrained extractor (Principle V) in `src/eol_genai_service/extraction/extract.py`: NL → `QueryIntent` (shape/taxon_refs/predicate_refs/rollup/direction_hint/hops) (depends on T006)
+- [X] T014 Mellea-constrained extractor (Principle V) in `src/eol_genai_service/extraction/extract.py`: NL → `QueryIntent` (shape/taxon_refs/predicate_refs/rollup/direction_hint/hops) (depends on T006)
 - [X] T015 [P] neo4j→contract mapper in `src/eol_genai_service/upstream/mappers.py`: 4 value slots → `Value.kind`, provenance attach, `truncated`/`count` (depends on T006)
 - [X] T016 [P] Versioned shape + repair registries in `src/eol_genai_service/shapes/registry.py` and `src/eol_genai_service/repair/rules.py` (id+version, testable lookup)
 - [X] T017 Request pipeline + FastAPI `POST /v1/answer` in `src/eol_genai_service/api/app.py` wiring extract→resolve→shape→validator→run_cypher→map→Result (depends on T006, T010, T014, T015, T016)
