@@ -28,19 +28,30 @@ the offline extractor/resolvers as a useful intermediate milestone.
   hosted-embeddings upgrade.
 - [ ] `uv sync` green; CI lockfile check (`uv sync --locked`) still passes.
 
-## 2. Live EOL transport (deferred half of T008) — unblocks everything
+## 2. Live EOL transport (deferred half of T008) — unblocks everything ✅ DONE
 
-- [ ] Implement an **httpx-backed `Transport`** (`upstream/client.py` or `upstream/http_transport.py`):
-  attaches the JWT header, sends `query` + `format=cypher`, applies `upstream_timeout_seconds`,
-  raises on timeout/5xx (→ `UpstreamUnavailable`).
-- [ ] Add a **composition root** (e.g. `eol_genai_service/factory.py`, wired in `api/app.py`) that
-  builds `PipelineDeps` with the real transport when `EOL_JWT` is set, else the fixture transport.
-- [ ] **Verify**: URI case-sensitivity preserved end-to-end (no lower-casing); empty result →
-  `no_records`, not error.
-- [ ] **Gate**: one real query per canonical shape returns rows the existing mappers map cleanly
-  (provenance fields present).
+- [x] **httpx-backed `Transport`** — `upstream/http_transport.py` (`HttpEolTransport`): GET with
+  `query`+`format`, `Authorization: JWT <token>` header (verified live), parses neo4j
+  `{columns, data}` → row dicts, raises on timeout/HTTP error (→ `UpstreamUnavailable`).
+- [x] **Composition root** — `eol_genai_service/factory.py` (`build_deps`): live transport when
+  `EOL_JWT` is set, else fixture transport; wired into `api/app.py` (prod ASGI `app`; `create_app`
+  still defaults to offline so tests never hit the network).
+- [x] **Verified live**: a real query returns parsed rows; an empty match → `[]` (→ `no_records`),
+  not an error (`tests/integration/test_eol_live.py`, skipif no `EOL_JWT`).
+- [ ] **Gate (blocked on T011)**: one real query per canonical shape end-to-end. The live branch
+  still uses the fixture-catalog resolvers, whose page_ids/URIs don't match real EOL, so live
+  queries currently return `no_records`. Completing this needs the EOL-enumerated catalog (T011)
+  + the full-URI fix recorded in §3.
 
 ## 3. Embedded term catalog + retrieval resolvers (T011)
+
+> **Finding (§2 probe) — EOL stores FULL URIs.** Terms are stored as e.g.
+> `http://purl.obolibrary.org/obo/VT_0001259` (body mass), `http://eol.org/schema/terms/...`, not
+> the short `VT_0001259` the fixtures use. So T011 must: (a) enumerate/resolve to **full** URIs;
+> (b) **widen the validator URI regex** (`validator/core.py` currently matches `[A-Z]+_[0-9]+`) to
+> match full `http(s)://…` URI literals and compare them whole against the resolved set (preserving
+> SC-002); (c) update the shape templates' `{uri:'…'}` interpolation accordingly. Re-run the
+> SC-002/SC-003 validator tests after the regex change.
 
 - [ ] **Enumerate** predicate/value `Term`s from the self-describing graph
   (`Term {type:"measurement"}`, `{type:"association"}`, value terms) via the live transport.
