@@ -56,6 +56,14 @@ PREDICATE_CATALOG: list[PredicateTerm] = [
         type="measurement",
         aliases=("body size", "overall size", "size measurement"),
     ),
+    # The EOL type-gap case: EOL types coloration as `measurement`, but its values are categorical
+    # (object_term). The dual-slot attribute shape must return the categorical value, not no_records.
+    PredicateTerm(
+        uri="PATO_0000014",
+        name="coloration",
+        type="measurement",
+        aliases=("color", "colour", "coloration"),
+    ),
 ]
 
 TAXON_CATALOG: list[TaxonRecord] = [
@@ -111,6 +119,17 @@ EOL_ROWS: dict[tuple[int, str], list[dict[str, object]]] = {
             "resource_id": 11,
             "resource_name": "GloBI",
             "citation": "Interaction record",
+        }
+    ],
+    # Type-gap case: coloration is `measurement`-typed but carries an object_term (categorical)
+    # value — the dual-slot attribute shape must surface it as categorical, not no_records.
+    (328598, "PATO_0000014"): [
+        {
+            "term_uri": "PATO_0000952",
+            "term_name": "brown",
+            "resource_id": 7,
+            "resource_name": "EOL Dynamic Hierarchy",
+            "citation": None,
         }
     ],
 }
