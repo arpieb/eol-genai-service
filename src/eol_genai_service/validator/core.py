@@ -24,8 +24,12 @@ ViolationCode = str  # one of: MISSING_LIMIT, UNRESOLVED_URI, NOT_READ_ONLY
 # An explicit numeric LIMIT clause. Cypher keywords are case-insensitive.
 _LIMIT_RE = re.compile(r"\blimit\b\s+\d+", re.IGNORECASE)
 
-# Ontology URIs look like VT_0001259, PATO_0000117, RO_0002471 — UPPERCASE prefix + digits.
-_URI_RE = re.compile(r"\b[A-Z][A-Z0-9]*_[0-9]+\b")
+# Ontology URI literals. EOL stores FULL URIs (http://purl.obolibrary.org/obo/VT_0001259,
+# http://eol.org/schema/terms/ExtinctionStatus); the offline fixtures use the short form
+# (VT_0001259). Match either — the full-URL alternative is tried first and consumes the whole URL,
+# so a short id embedded inside a full URI is not separately extracted. Comparison against the
+# resolved set is whole-token and case-sensitive (preserves SC-002 "no invented URIs").
+_URI_RE = re.compile(r"https?://[^\s'\"]+|\b[A-Z][A-Z0-9]*_[0-9]+\b")
 
 # Write clauses that make a query non-read-only. Whole-word, case-insensitive.
 _WRITE_KEYWORDS = ("CREATE", "MERGE", "DELETE", "DETACH", "SET", "REMOVE", "DROP", "FOREACH")
