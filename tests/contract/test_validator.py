@@ -74,3 +74,34 @@ def test_multiple_violations_are_all_reported():
     q = "CREATE (:Term {uri:'PATO_9999999'}) RETURN 1"  # no LIMIT, invented URI, write
     codes = _codes(q)
     assert {"MISSING_LIMIT", "UNRESOLVED_URI", "NOT_READ_ONLY"} <= codes
+
+
+# --- full EOL URIs (EOL stores full URIs, not the short form) ---------------------------------
+
+_BODY_MASS = "http://purl.obolibrary.org/obo/VT_0001259"
+_EXTINCTION = "http://eol.org/schema/terms/ExtinctionStatus"  # full URI, no digit suffix
+
+
+def test_full_uri_query_passes_when_resolved():
+    q = f"MATCH (:Term {{uri:'{_BODY_MASS}'}}) RETURN 1 LIMIT 10"
+    assert validate(q, {_BODY_MASS}).ok
+
+
+def test_full_uri_without_digit_suffix_is_handled():
+    q = f"MATCH (:Term {{uri:'{_EXTINCTION}'}}) RETURN 1 LIMIT 10"
+    assert validate(q, {_EXTINCTION}).ok
+    assert "UNRESOLVED_URI" in {v.code for v in validate(q, set()).violations}
+
+
+def test_invented_full_uri_is_rejected():
+    q = f"MATCH (:Term {{uri:'{_BODY_MASS}'}}) RETURN 1 LIMIT 10"
+    bad = {v.code for v in validate(q, {"http://x/obo/NOPE_0000001"}).violations}
+    assert "UNRESOLVED_URI" in bad
+
+
+def test_whole_uri_is_the_unit_not_its_embedded_short_id():
+    # The full URI contains the substring 'VT_0001259'. Resolving only the SHORT id must NOT
+    # satisfy a query that uses the FULL URI — the whole token is compared.
+    q = f"MATCH (:Term {{uri:'{_BODY_MASS}'}}) RETURN 1 LIMIT 10"
+    assert "UNRESOLVED_URI" in {v.code for v in validate(q, {"VT_0001259"}).violations}
+    assert validate(q, {_BODY_MASS}).ok
