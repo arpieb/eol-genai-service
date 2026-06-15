@@ -21,6 +21,8 @@ wheels/
 # Secrets / env
 .env
 .env.*
+# committed sample (no secrets)
+!.env.example
 
 # Editors / OS
 .DS_Store

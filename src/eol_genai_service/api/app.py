@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from eol_genai_service.config import load_env
 from eol_genai_service.contract import AnswerRequest, Result
 from eol_genai_service.fixtures import build_offline_deps
 from eol_genai_service.orchestration.pipeline import PipelineDeps, answer
@@ -17,6 +18,7 @@ from eol_genai_service.orchestration.pipeline import PipelineDeps, answer
 
 def create_app(deps: PipelineDeps | None = None) -> FastAPI:
     """Build the app. Defaults to the offline-fixture pipeline for local/CI use."""
+    load_env()  # composition root: pick up a local .env (e.g. EOL_JWT) before building deps
     deps = deps or build_offline_deps()
     app = FastAPI(title="EOL Trait Query Service", version="0.1.0")
 
