@@ -11,6 +11,21 @@ import os
 from pydantic import BaseModel, Field
 
 
+def load_env() -> None:
+    """Load a local ``.env`` file into the process environment, if present.
+
+    Called once at the application composition root (not in :meth:`Settings.from_env`, which stays
+    a pure reader of the process environment so tests are deterministic). Real environment variables
+    take precedence over ``.env`` (``override=False``); secrets live only in the git-ignored
+    ``.env`` file, never in the committed ``.env.example``.
+    """
+    from dotenv import find_dotenv, load_dotenv
+
+    # Search from the current working directory (where the operator runs the app), not the
+    # package location, so the operator's .env is found regardless of install layout.
+    load_dotenv(find_dotenv(usecwd=True), override=False)
+
+
 class Settings(BaseModel):
     """Runtime configuration. Construct via :meth:`from_env`.
 
