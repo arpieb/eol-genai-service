@@ -60,6 +60,11 @@ class Settings(BaseModel):
     embeddings_backend: str = "ollama"  # "ollama" (local default) | "voyage"
     embeddings_model_id: str = "mxbai-embed-large"
 
+    # Resolution confidence gates. Defaults suit exact-match (offline) scores; the live embedding
+    # path uses lower values (cosine tops out ~0.6), set by the composition root (see factory).
+    resolution_confidence_threshold: float = 0.85
+    resolution_ambiguity_margin: float = 0.15
+
     @classmethod
     def from_env(cls) -> "Settings":
         """Build settings from environment variables, falling back to the defaults above."""
@@ -98,5 +103,13 @@ class Settings(BaseModel):
             ),
             embeddings_model_id=os.getenv(
                 "EOL_EMBEDDINGS_MODEL_ID", cls.model_fields["embeddings_model_id"].default
+            ),
+            resolution_confidence_threshold=_float(
+                "EOL_RESOLUTION_CONFIDENCE_THRESHOLD",
+                cls.model_fields["resolution_confidence_threshold"].default,
+            ),
+            resolution_ambiguity_margin=_float(
+                "EOL_RESOLUTION_AMBIGUITY_MARGIN",
+                cls.model_fields["resolution_ambiguity_margin"].default,
             ),
         )

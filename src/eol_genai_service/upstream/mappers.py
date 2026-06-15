@@ -38,7 +38,8 @@ def map_single_fact_rows(
                 predicate=predicate,
                 value=QuantitativeValue(
                     amount=float(row["amount"]),  # type: ignore[arg-type]
-                    units=str(row["units"]),
+                    # Real EOL rows may carry null units; present them as empty, not "None".
+                    units=str(row["units"]) if row.get("units") is not None else "",
                     normalized=True,
                 ),
                 provenance=_provenance(row),
