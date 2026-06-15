@@ -138,6 +138,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "mellea" },
+    { name = "numpy" },
     { name = "pydantic" },
     { name = "python-dotenv" },
 ]
@@ -153,6 +154,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.136.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mellea", specifier = ">=0.6.0" },
+    { name = "numpy", specifier = ">=2.4.6" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
 ]

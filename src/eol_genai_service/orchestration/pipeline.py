@@ -42,10 +42,8 @@ from eol_genai_service.upstream.mappers import (
 )
 from eol_genai_service.upstream.run_cypher import run_cypher
 
-# Resolution must clear this confidence bar; otherwise we ask rather than guess (SC-004 hard gate).
-CONFIDENCE_THRESHOLD = 0.85
-# A second candidate within this margin of the top makes the choice ambiguous.
-AMBIGUITY_MARGIN = 0.15
+# Resolution confidence gates now live on Settings (exact-match vs embedding scores differ); the
+# pipeline reads deps.settings so the same logic serves both the offline and live resolvers.
 
 # The concrete query shape is chosen by the resolved predicate's type (FR-005), not guessed.
 _SHAPE_BY_PREDICATE_TYPE = {
@@ -179,7 +177,7 @@ def _resolve_subject(
     if not intent.taxon_refs:  # no extracted taxon and no valid choice — nothing to resolve
         return NeedsClarificationResult(candidates=CandidateSet(kind="taxon", items=[]))
     candidates = deps.taxon_resolver.resolve(intent.taxon_refs[0])
-    if _is_confident(candidates):
+    if _is_confident(candidates, deps.settings):
         top = candidates[0]
         return Taxon(
             page_id=top.page_id,
@@ -187,33 +185,36 @@ def _resolve_subject(
             vernacular_names=top.vernacular_names,
         )
     return NeedsClarificationResult(
-        candidates=CandidateSet(kind="taxon", items=_contending(candidates))
+        candidates=CandidateSet(kind="taxon", items=_contending(candidates, deps.settings))
     )
 
 
 def _resolve_predicate(intent, deps: PipelineDeps) -> Predicate | NeedsClarificationResult:
     candidates = deps.predicate_resolver.resolve(intent.predicate_refs[0])
-    if _is_confident(candidates):
+    if _is_confident(candidates, deps.settings):
         top = candidates[0]
         return Predicate(uri=top.uri, name=top.name, type=top.type)
     return NeedsClarificationResult(
-        candidates=CandidateSet(kind="predicate", items=_contending(candidates))
+        candidates=CandidateSet(kind="predicate", items=_contending(candidates, deps.settings))
     )
 
 
-def _is_confident(candidates: list) -> bool:
+def _is_confident(candidates: list, settings: Settings) -> bool:
     """Confident iff exactly one strong candidate (above threshold, no close runner-up)."""
-    if not candidates or candidates[0].score < CONFIDENCE_THRESHOLD:
+    if not candidates or candidates[0].score < settings.resolution_confidence_threshold:
         return False
-    if len(candidates) > 1 and candidates[0].score - candidates[1].score < AMBIGUITY_MARGIN:
+    if (
+        len(candidates) > 1
+        and candidates[0].score - candidates[1].score < settings.resolution_ambiguity_margin
+    ):
         return False
     return True
 
 
-def _contending(candidates: list) -> list:
+def _contending(candidates: list, settings: Settings) -> list:
     """The genuinely-competing candidates to present for clarification — those within the
     ambiguity margin of the top. Weak partial matches are not shown to the user."""
     if not candidates:
         return []
-    cutoff = candidates[0].score - AMBIGUITY_MARGIN
+    cutoff = candidates[0].score - settings.resolution_ambiguity_margin
     return [c for c in candidates if c.score >= cutoff]
