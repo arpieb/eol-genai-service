@@ -5,10 +5,11 @@ embeds them once, and persists the matrix; at query time it cosine-ranks the use
 the matrix to produce ``PredicateCandidate``s carrying **full EOL URIs**. Brute-force numpy over a
 few hundred terms is instant, so no vector database is used.
 
-Note (EOL type gap): EOL types both numeric and categorical predicates as ``measurement`` (e.g.
-``habitat`` is ``measurement`` though its values are ``object_term``). So a measurement predicate
-maps to ``single_fact`` by default here; reading the correct value slot for categorical-valued
-measurement predicates is the repair loop's job (``categorical-as-numeric``) and a follow-up.
+Note (EOL type gap — handled): EOL types both numeric and categorical predicates as
+``measurement`` (e.g. ``habitat`` is ``measurement`` though its values are ``object_term``). The
+pipeline routes measurement/categorical predicates to the dual-slot ``attribute`` shape, which
+reads both value slots and maps whichever is populated — so categorical-valued measurement
+predicates answer correctly.
 """
 
 from __future__ import annotations

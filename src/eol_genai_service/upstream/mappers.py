@@ -66,6 +66,35 @@ def map_categorical_rows(
     return statements
 
 
+def map_attribute_rows(
+    rows: Sequence[dict[str, object]], subject: Taxon, predicate: Predicate
+) -> list[Statement]:
+    """Map dual-slot attribute rows: per row, a populated ``normal_measurement`` → quantitative,
+    else a populated ``object_term`` → categorical (the EOL type-gap fix, FR-005)."""
+    statements: list[Statement] = []
+    for row in rows:
+        if row.get("amount") is not None:
+            value: QuantitativeValue | CategoricalValue = QuantitativeValue(
+                amount=float(row["amount"]),  # type: ignore[arg-type]
+                units=str(row["units"]) if row.get("units") is not None else "",
+                normalized=True,
+            )
+        elif row.get("term_uri") is not None:
+            value = CategoricalValue(
+                term=Predicate(
+                    uri=str(row["term_uri"]), name=str(row["term_name"]), type="categorical"
+                )
+            )
+        else:
+            continue  # neither slot populated → nothing to present for this row
+        statements.append(
+            Statement(
+                subject=subject, predicate=predicate, value=value, provenance=_provenance(row)
+            )
+        )
+    return statements
+
+
 def map_association_rows(
     rows: Sequence[dict[str, object]],
     subject: Taxon,

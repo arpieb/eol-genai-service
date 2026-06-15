@@ -30,15 +30,13 @@ from eol_genai_service.resolution.predicates import PredicateResolver
 from eol_genai_service.resolution.taxa import TaxonResolver
 from eol_genai_service.shapes.aggregate_count import build_aggregate_count_query
 from eol_genai_service.shapes.association import association_direction, build_association_query
-from eol_genai_service.shapes.categorical_attribute import build_categorical_query
+from eol_genai_service.shapes.attribute import build_attribute_query
 from eol_genai_service.shapes.lineage import build_lineage_query
-from eol_genai_service.shapes.single_fact import build_single_fact_query
 from eol_genai_service.upstream.client import EolCypherClient, UpstreamUnavailable
 from eol_genai_service.upstream.mappers import (
     map_association_rows,
-    map_categorical_rows,
+    map_attribute_rows,
     map_lineage_rows,
-    map_single_fact_rows,
 )
 from eol_genai_service.upstream.run_cypher import run_cypher
 
@@ -46,9 +44,12 @@ from eol_genai_service.upstream.run_cypher import run_cypher
 # pipeline reads deps.settings so the same logic serves both the offline and live resolvers.
 
 # The concrete query shape is chosen by the resolved predicate's type (FR-005), not guessed.
+# Both measurement and categorical predicates use the dual-slot ``attribute`` shape: EOL types
+# categorical predicates (e.g. habitat) as ``measurement``, so we read both value slots and let
+# the mapper pick per row (the EOL type-gap fix).
 _SHAPE_BY_PREDICATE_TYPE = {
-    "measurement": "single_fact",
-    "categorical": "categorical_attribute",
+    "measurement": "attribute",
+    "categorical": "attribute",
     "association": "association",
 }
 
@@ -152,18 +153,14 @@ def _answer_lineage(request: AnswerRequest, intent, deps: PipelineDeps) -> Resul
 
 
 def _build_query(shape: str, page_id: int, uri: str, cap: int) -> str:
-    if shape == "single_fact":
-        return build_single_fact_query(page_id, uri, cap)
-    if shape == "categorical_attribute":
-        return build_categorical_query(page_id, uri, cap)
+    if shape == "attribute":
+        return build_attribute_query(page_id, uri, cap)
     return build_association_query(page_id, uri, cap)
 
 
 def _map(shape: str, rows, subject: Taxon, predicate: Predicate) -> list[Statement]:
-    if shape == "single_fact":
-        return map_single_fact_rows(rows, subject, predicate)
-    if shape == "categorical_attribute":
-        return map_categorical_rows(rows, subject, predicate)
+    if shape == "attribute":
+        return map_attribute_rows(rows, subject, predicate)
     return map_association_rows(rows, subject, predicate, association_direction(predicate.uri))
 
 
