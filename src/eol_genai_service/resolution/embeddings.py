@@ -20,6 +20,8 @@ from typing import Protocol
 
 import numpy as np
 
+from eol_genai_service.upstream.client import UpstreamUnavailable
+
 # mxbai-embed-large's retrieval query instruction (documents are embedded without it).
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
@@ -57,7 +59,15 @@ class LiteLLMEmbedder:
         kwargs: dict[str, object] = {"model": self.model, "input": inputs}
         if self.api_base is not None:
             kwargs["api_base"] = self.api_base
-        resp = litellm.embedding(**kwargs)
+        try:
+            resp = litellm.embedding(**kwargs)
+        except Exception as exc:  # noqa: BLE001 - any embedding-backend failure is "unavailable"
+            # The embedding backend (Ollama by default) is an upstream dependency: map a
+            # connection/timeout/rate-limit/5xx failure to the shared UpstreamUnavailable signal so
+            # the pipeline surfaces upstream_unavailable, not an unhandled crash — like the EOL
+            # Cypher and taxon-search paths. (litellm's exception base is openai's, which we don't
+            # import; matching EolCypherClient's "any backend failure is unavailable" convention.)
+            raise UpstreamUnavailable(f"embedding backend unavailable: {exc}") from exc
         # litellm may return data out of order; the `index` field is authoritative.
         rows = sorted(resp["data"], key=lambda d: d["index"])
         return l2_normalize(np.array([r["embedding"] for r in rows], dtype="float32"))

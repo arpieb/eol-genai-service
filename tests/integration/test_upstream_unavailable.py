@@ -71,6 +71,34 @@ def test_search_api_error_during_resolution_maps_to_upstream_unavailable():
     assert "search" in result.detail.lower()
 
 
+def test_embedding_backend_error_during_resolution_maps_to_upstream_unavailable(monkeypatch):
+    # The embedding backend (predicate grounding) is also an upstream: if it's down while resolving
+    # the predicate, the request surfaces upstream_unavailable, not a crash.
+    import litellm
+    import numpy as np
+
+    from eol_genai_service.resolution.embeddings import LiteLLMEmbedder
+    from eol_genai_service.resolution.predicate_index import (
+        EmbeddingPredicateResolver,
+        PredicateEmbeddingIndex,
+    )
+    from eol_genai_service.resolution.predicates import PredicateTerm
+
+    def boom(model, input, **kwargs):
+        raise ConnectionError("embedding backend down")
+
+    monkeypatch.setattr(litellm, "embedding", boom)
+    index = PredicateEmbeddingIndex(
+        [PredicateTerm(uri="VT_1", name="body mass", type="measurement", aliases=())],
+        np.zeros((1, 4), dtype="float32"),
+    )
+    resolver = EmbeddingPredicateResolver(index, LiteLLMEmbedder("ollama/mxbai-embed-large"))
+    deps = replace(build_offline_deps(), predicate_resolver=resolver)
+    result = answer(AnswerRequest(question="how heavy is a sea otter?"), deps)
+    assert result.outcome == "upstream_unavailable"
+    assert "embedding" in result.detail.lower()
+
+
 def test_upstream_unavailable_is_distinct_from_no_records():
     unavailable = answer(
         AnswerRequest(question="how heavy is a sea otter?"),
