@@ -1,0 +1,60 @@
+{
+ "MATCH (p:Page)-[:trait|inferred_trait]->(t:Trait)-[:predicate]->(:Term {uri:'http://purl.obolibrary.org/obo/VT_0001259'}) WHERE p.page_id = 328598 OPTIONAL MATCH (t)-[:object_term]->(o:Term) OPTIONAL MATCH (t)-[:supplier]->(r:Resource) RETURN t.normal_measurement AS amount, t.normal_units AS units, o.uri AS term_uri, o.name AS term_name, r.resource_id AS resource_id, r.name AS resource_name, t.citation AS citation LIMIT 5": [
+  {
+   "amount": "5525",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 694,
+   "resource_name": "Smith et al 2011",
+   "citation": "NCEAS 2182: Smith: Body size in ecology and paleoecology: Linking pattern and process across spatial, temporal and taxonomic scales , National Center for Ecological Analysis and Synthesis , and Smith F. Macroecological database of mammalian body mass (doi:10.5063/AA/nceas.196.3)"
+  },
+  {
+   "amount": "76.14",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 693,
+   "resource_name": "Morgan Ernest 2003",
+   "citation": "S. K. Morgan Ernest. 2003. Life history characteristics of placental non-volant mammals. Ecology 84:3402."
+  },
+  {
+   "amount": "1200",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 693,
+   "resource_name": "Morgan Ernest 2003",
+   "citation": "S. K. Morgan Ernest. 2003. Life history characteristics of placental non-volant mammals. Ecology 84:3402."
+  },
+  {
+   "amount": "4400",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 693,
+   "resource_name": "Morgan Ernest 2003",
+   "citation": "S. K. Morgan Ernest. 2003. Life history characteristics of placental non-volant mammals. Ecology 84:3402."
+  },
+  {
+   "amount": "4842.2",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 50,
+   "resource_name": "AnAge",
+   "citation": null
+  }
+ ],
+ "MATCH (p:Page)-[:trait|inferred_trait]->(t:Trait)-[:predicate]->(:Term {uri:'http://rs.tdwg.org/dwc/terms/habitat'}) WHERE p.page_id = 47098272 OPTIONAL MATCH (t)-[:object_term]->(o:Term) OPTIONAL MATCH (t)-[:supplier]->(r:Resource) RETURN t.normal_measurement AS amount, t.normal_units AS units, o.uri AS term_uri, o.name AS term_name, r.resource_id AS resource_id, r.name AS resource_name, t.citation AS citation LIMIT 5": [
+  {
+   "amount": null,
+   "units": null,
+   "term_uri": "http://purl.obolibrary.org/obo/ENVO_01000024",
+   "term_name": "marine benthic",
+   "resource_id": 459,
+   "resource_name": "World Register of Marine Species",
+   "citation": null
+  }
+ ]
+}
