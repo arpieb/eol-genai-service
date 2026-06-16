@@ -2,8 +2,8 @@
 
 Backend-agnostic: pass any ``resolve(text) -> [candidate(uri, score)]`` and a labeled set of
 ``(query phrase, expected term URI)``. Reports recall@1/@3/@5 and mean reciprocal rank, plus the
-score of the correct candidate (to tune the confidence gate). Run against the local Ollama
-embeddings today; drop in a Voyage embedder to compare when a key is available.
+score of the correct candidate (to tune the confidence gate). Runs against whichever embedder the
+config selects (local Ollama by default); point the embeddings config at another provider to compare.
 """
 
 from __future__ import annotations

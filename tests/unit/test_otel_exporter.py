@@ -3,6 +3,7 @@
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import StatusCode
 
+from eol_genai_service.config import Settings
 from eol_genai_service.observability import Layer, Span
 from eol_genai_service.observability.otel import (
     build_tracer_provider,
@@ -19,13 +20,14 @@ def _exporter_and_tracer():
 
 def test_span_attributes_survive_export():
     exporter, tracer = _exporter_and_tracer()
+    model_id = Settings().service_model_id
     export_spans(
         tracer,
         [
             Span(
                 name="extract",
                 layer=Layer.SERVICE_EXTRACTOR,
-                model_id="granite4.1:3b",
+                model_id=model_id,
                 tokens_in=120,
                 tokens_out=30,
                 cost=0.0,
@@ -39,7 +41,7 @@ def test_span_attributes_survive_export():
     s = finished[0]
     assert s.name == "extract"
     assert s.attributes["layer"] == "service-extractor"
-    assert s.attributes["model_id"] == "granite4.1:3b"
+    assert s.attributes["model_id"] == model_id
     assert s.attributes["tokens_in"] == 120
     assert s.attributes["latency_ms"] == 12.5
     assert s.attributes["attr.shape"] == "single_fact"  # free-form attrs are namespaced
