@@ -2,6 +2,7 @@
 
 from dataclasses import replace
 
+from eol_genai_service.config import Settings
 from eol_genai_service.contract import AnswerRequest
 from eol_genai_service.fixtures import build_offline_deps
 from eol_genai_service.observability import Layer, Span, totals_by_layer
@@ -31,7 +32,7 @@ def test_extract_span_carries_the_service_model_id():
     sink = _run_collecting_spans("how heavy is a sea otter?")
     extract = next(s for s in sink if s.name == "extract")
     assert extract.layer is Layer.SERVICE_EXTRACTOR
-    assert extract.model_id == "granite4.1:3b"  # the configured service extractor model
+    assert extract.model_id == Settings().service_model_id  # the configured service extractor model
 
 
 def test_no_sink_still_answers(monkeypatch):

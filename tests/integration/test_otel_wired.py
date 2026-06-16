@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from eol_genai_service.api.app import create_app
+from eol_genai_service.config import Settings
 from eol_genai_service.fixtures import build_offline_deps
 from eol_genai_service.observability.otel import build_tracer_provider, get_tracer
 
@@ -26,7 +27,7 @@ def test_request_exports_extract_and_run_cypher_spans_tagged_by_layer():
     # Every exported span is attributed to a reasoning layer (Principle VI).
     assert all(s.attributes["layer"] == "service-extractor" for s in finished)
     extract = next(s for s in finished if s.name == "extract")
-    assert extract.attributes["model_id"] == "granite4.1:3b"
+    assert extract.attributes["model_id"] == Settings().service_model_id
 
 
 def test_request_path_unchanged_without_a_tracer():
