@@ -2,10 +2,12 @@
 
 import litellm
 import numpy as np
+import pytest
 
 from eol_genai_service.config import Settings
 from eol_genai_service.factory import build_embedder
 from eol_genai_service.resolution.embeddings import QUERY_PREFIX, LiteLLMEmbedder
+from eol_genai_service.upstream.client import UpstreamUnavailable
 
 
 def _fake_embedding(record: dict):
@@ -74,3 +76,14 @@ def test_build_embedder_maps_config_to_litellm_model_and_prefix():
     )
     assert voyage.model == "voyage/voyage-3-large"
     assert voyage.query_prefix == ""
+
+
+def test_backend_failure_maps_to_upstream_unavailable(monkeypatch):
+    # A down/unreachable embedding backend (e.g. Ollama off) surfaces as the shared upstream signal,
+    # not an unhandled crash — so predicate resolution can return upstream_unavailable.
+    def boom(model, input, **kwargs):
+        raise ConnectionError("ollama unreachable")
+
+    monkeypatch.setattr(litellm, "embedding", boom)
+    with pytest.raises(UpstreamUnavailable):
+        LiteLLMEmbedder("ollama/mxbai-embed-large").embed_query("body mass")
