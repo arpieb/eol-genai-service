@@ -39,6 +39,7 @@ GOLDEN = [
 
 
 def _norm(query: str) -> str:
+    # keep in sync with tests/support.norm (record + replay must agree)
     return re.sub(r"\s+", " ", query).strip()
 
 

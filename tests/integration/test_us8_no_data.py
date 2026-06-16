@@ -4,20 +4,12 @@ A valid, well-formed question whose upstream result is empty returns an explicit
 (FR-010) — returned once, with no retry loop, and distinct from ``upstream_unavailable`` (FR-013).
 """
 
-from eol_genai_service.config import Settings
+from support import offline_deps
 from eol_genai_service.contract import AnswerRequest
-from eol_genai_service.extraction.extract import RuleBasedExtractor
 from eol_genai_service.fixtures import (
-    PREDICATE_CATALOG,
-    TAXON_CATALOG,
     build_offline_deps,
-    predicate_surface_forms,
-    taxon_surface_forms,
 )
 from eol_genai_service.orchestration.pipeline import PipelineDeps, answer
-from eol_genai_service.resolution.predicates import CatalogPredicateResolver
-from eol_genai_service.resolution.taxa import CatalogTaxonResolver
-from eol_genai_service.upstream.client import EolCypherClient
 
 
 class CountingEmptyTransport:
@@ -32,14 +24,7 @@ class CountingEmptyTransport:
 
 
 def _deps_with(transport) -> PipelineDeps:
-    settings = Settings()
-    return PipelineDeps(
-        extractor=RuleBasedExtractor(predicate_surface_forms(), taxon_surface_forms()),
-        predicate_resolver=CatalogPredicateResolver(PREDICATE_CATALOG),
-        taxon_resolver=CatalogTaxonResolver(TAXON_CATALOG),
-        client=EolCypherClient(settings, transport),
-        settings=settings,
-    )
+    return offline_deps(transport)
 
 
 def test_empty_upstream_returns_no_records():

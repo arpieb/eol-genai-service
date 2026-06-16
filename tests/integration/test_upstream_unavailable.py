@@ -8,32 +8,17 @@ from dataclasses import replace
 
 import httpx
 
-from eol_genai_service.config import Settings
+from support import offline_deps
 from eol_genai_service.contract import AnswerRequest
-from eol_genai_service.extraction.extract import RuleBasedExtractor
 from eol_genai_service.fixtures import (
-    PREDICATE_CATALOG,
-    TAXON_CATALOG,
     build_offline_deps,
-    predicate_surface_forms,
-    taxon_surface_forms,
 )
-from eol_genai_service.orchestration.pipeline import PipelineDeps, answer
-from eol_genai_service.resolution.predicates import CatalogPredicateResolver
-from eol_genai_service.resolution.taxa import CatalogTaxonResolver
+from eol_genai_service.orchestration.pipeline import answer
 from eol_genai_service.resolution.taxon_search import SearchApiTaxonResolver
-from eol_genai_service.upstream.client import EolCypherClient
 
 
 def _deps_with(transport, max_retries=2):
-    settings = Settings(upstream_max_retries=max_retries)
-    return PipelineDeps(
-        extractor=RuleBasedExtractor(predicate_surface_forms(), taxon_surface_forms()),
-        predicate_resolver=CatalogPredicateResolver(PREDICATE_CATALOG),
-        taxon_resolver=CatalogTaxonResolver(TAXON_CATALOG),
-        client=EolCypherClient(settings, transport),
-        settings=settings,
-    )
+    return offline_deps(transport, upstream_max_retries=max_retries)
 
 
 def test_timeout_maps_to_upstream_unavailable():

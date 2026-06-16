@@ -19,11 +19,11 @@ measuring nothing). The offline `test_latency.py` is the CI regression guard; th
 """
 
 import time
-import urllib.request
 
 import httpx
 import pytest
 
+from support import ollama_up
 from eol_genai_service.config import Settings, load_env
 from eol_genai_service.contract import AnswerRequest
 from eol_genai_service.factory import build_deps
@@ -49,16 +49,8 @@ CANONICAL = [
 ]
 
 
-def _ollama_up() -> bool:
-    try:
-        urllib.request.urlopen("http://localhost:11434/api/tags", timeout=2)
-        return True
-    except Exception:
-        return False
-
-
 pytestmark = pytest.mark.skipif(
-    not (_SETTINGS.eol_jwt and _ollama_up()), reason="needs EOL_JWT + Ollama"
+    not (_SETTINGS.eol_jwt and ollama_up()), reason="needs EOL_JWT + Ollama"
 )
 
 
