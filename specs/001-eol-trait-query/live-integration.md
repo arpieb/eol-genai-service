@@ -98,8 +98,13 @@ the offline extractor/resolvers as a useful intermediate milestone.
 
 - [ ] **SC-001**: replace the golden set in `test_accuracy_golden.py` with **hand-written EOL
   queries** as ground truth; confirm ≥90% on the live held-out set.
-- [ ] **SC-006**: re-run the latency check against the live path (Ollama extract + Voyage retrieve +
-  one upstream query); confirm **p95 ≤ 5 s** warm-cache.
+- [x] **SC-006**: `tests/integration/test_latency_live.py` measures the live path (Mellea/Granite
+  extract + embedding retrieve + EOL search-API taxon resolution + one upstream Cypher) for canonical
+  US-1..US-5 questions, skip-guarded on `EOL_JWT`+Ollama. **Measured warm-cache p95 ≈ 0.63 s** (max
+  0.63 s, mean 0.53 s over 18 samples) — well within the 5 s budget. Caveats: cold first call ~4.4 s
+  (one-time Mellea session connect); the EOL **search API can spike** (~6 s observed for some taxa)
+  and common names resolve ambiguous → `needs_clarification` before the upstream call, so the gate
+  uses scientific names and a reached-EOL floor to measure the real answer path.
 - [x] **Recorded fixtures for CI**: `scripts/record_eol_cassettes.py` captures real EOL responses
   to `tests/fixtures/eol_cassettes/`; `tests/integration/test_eol_recorded.py` replays them (no
   skipif) so the EOL-facing pipeline — validator (full URIs), attribute shape, neo4j→contract
