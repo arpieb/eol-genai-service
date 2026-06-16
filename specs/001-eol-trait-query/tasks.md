@@ -32,7 +32,9 @@ implementation and testing.
 
 - [X] T001 Create package + test structure (`src/eol_genai_service/{contract,extraction,resolution,shapes,repair,validator,upstream,orchestration,tools,observability,api}/__init__.py` and `tests/{contract,integration,unit}/`)
 - [X] T002a Installed runtime deps: `fastapi`, `pydantic`, `httpx`, `mellea`, `python-dotenv`, `ollama`, `numpy`.
-- [ ] T002b Remaining deps: `opentelemetry-sdk`/`opentelemetry-api` (OTel exporter behind the span sink, see observability) and `mcp` (US-7 tool-surface transport); `anthropic` only if enabling the frontier extractor backend.
+- [X] T002b (OTel) `opentelemetry-api`/`opentelemetry-sdk` added; exporter behind the span sink in `src/eol_genai_service/observability/otel.py` (our layer-tagged `Span` → OTel spans, latency/cost/error attribution preserved), opt-in via a `tracer` injected into `create_app` (per-request span sink → `export_spans`). Tested with an in-memory exporter.
+  - [ ] T002b (mcp) deferred — added with the US-7 **MCP transport** that exposes `tools/surface.py` over MCP (no server exists yet; pre-installing an unused dep is avoided, per the F1/I2 lean-deps stance).
+  - [ ] T002b (anthropic) deferred — added only when the frontier extractor backend (`EOL_SERVICE_MODEL_BACKEND=anthropic`) is enabled; Mellea owns backends, so the SDK isn't imported today.
 - [X] T003 Embeddings dep `ollama` (numpy direct); no vector-index lib needed — 645-term brute-force numpy (research R2). `voyageai` only for the hosted-embeddings upgrade.
 - [X] T004 [P] Add dev tooling via `uv add --dev pytest ruff` and configure lint/format in `pyproject.toml`
 - [X] T005 [P] Scaffold settings in `src/eol_genai_service/config.py` (EOL JWT, `EOL_CYPHER_URL`, model ids, result cap, cache TTLs, embeddings selection)
