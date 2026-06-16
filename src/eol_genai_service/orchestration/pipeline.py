@@ -27,6 +27,7 @@ from eol_genai_service.contract import (
 from eol_genai_service.contract import Statement
 from eol_genai_service.extraction.extract import Extractor
 from eol_genai_service.observability import Layer, Span, span
+from eol_genai_service.repair.capture import MissCapture, RepairMiss
 from eol_genai_service.resolution.predicates import PredicateResolver
 from eol_genai_service.resolution.taxa import TaxonResolver
 from eol_genai_service.shapes.aggregate_count import build_aggregate_count_query
@@ -65,6 +66,9 @@ class PipelineDeps:
     # Optional collector for layer-tagged spans (Constitution Principle VI). The OTel exporter
     # consumes it (T002); when None, spans still emit to the trace logger.
     span_sink: list[Span] | None = None
+    # Optional capture of capability gaps (out_of_capability) to grow the repair rule set over time
+    # (research.md R8 / D1). When None, capture is off and behavior is unchanged.
+    miss_capture: MissCapture | None = None
 
 
 def _run_cypher_traced(query: str, uris: set[str], deps: PipelineDeps):
@@ -83,6 +87,19 @@ def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
         sink=deps.span_sink,
     ):
         intent = deps.extractor.extract(request.question)
+    result = _route(request, intent, deps)
+    # An out_of_capability outcome is a genuine gap — the service could not shape a query for this
+    # question. Capture it (never no_records, valid per Principle VII; never needs_clarification,
+    # which is healthy disambiguation) so the repair rule set grows from real misses (R8 / D1).
+    if isinstance(result, OutOfCapabilityResult) and deps.miss_capture is not None:
+        deps.miss_capture.record(
+            RepairMiss(question=request.question, shape=intent.shape, detail=result.reason)
+        )
+    return result
+
+
+def _route(request: AnswerRequest, intent, deps: PipelineDeps) -> Result:
+    """Dispatch an extracted intent to its shape handler (the single path to EOL)."""
     if intent.shape == "novel":
         # No modeled single-hop shape matched (US-7 territory); never fabricate an answer.
         return OutOfCapabilityResult(reason="question is not a modeled single-hop shape")
