@@ -2,7 +2,7 @@
 
 Verifies the real grounding stack end-to-end: predicate resolution (embeddings over the
 EOL-enumerated catalog → full body-mass URI), taxon resolution (search API → page id), and a real
-single_fact answer mapped from live EOL data.
+attribute answer mapped from live EOL data.
 """
 
 import urllib.request
@@ -18,10 +18,10 @@ from eol_genai_service.resolution.predicate_index import (
     enumerate_predicate_terms,
 )
 from eol_genai_service.resolution.taxon_search import SearchApiTaxonResolver
-from eol_genai_service.shapes.single_fact import build_single_fact_query
+from eol_genai_service.shapes.attribute import build_attribute_query
 from eol_genai_service.upstream.client import EolCypherClient
 from eol_genai_service.upstream.http_transport import HttpEolTransport
-from eol_genai_service.upstream.mappers import map_single_fact_rows
+from eol_genai_service.upstream.mappers import map_attribute_rows
 from eol_genai_service.upstream.run_cypher import run_cypher
 
 load_env()
@@ -71,14 +71,14 @@ def test_taxon_search_resolves_scientific_name_to_page_id():
     assert isinstance(cands[0].page_id, int)
 
 
-def test_single_fact_answers_from_real_eol_data():
+def test_attribute_answers_from_real_eol_data():
     # Page 328598 has body-mass traits (confirmed by probe). The full pipeline path —
     # validator (full URI) → live transport → mapper — produces a quantitative statement.
     client = EolCypherClient(_SETTINGS, HttpEolTransport(_SETTINGS))
-    query = build_single_fact_query(328598, _BODY_MASS, 5)
+    query = build_attribute_query(328598, _BODY_MASS, 5)
     upstream = run_cypher(query, {_BODY_MASS}, client)
     assert upstream.rows, "expected real body-mass rows from EOL"
-    statements = map_single_fact_rows(
+    statements = map_attribute_rows(
         upstream.rows,
         Taxon(page_id=328598, scientific_name="x"),
         Predicate(uri=_BODY_MASS, name="body mass", type="measurement"),

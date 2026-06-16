@@ -1,9 +1,10 @@
-"""neo4j → contract mappers (T015 / T022 / T031 / T034).
+"""neo4j → contract mappers.
 
 Translate raw EOL rows into service ``Statement``s — the boundary mapping (Constitution
 Principle I). No neo4j row shape escapes past here. Each value slot maps to its contract value
-kind (FR-005): ``normal_measurement`` → quantitative, ``object_term`` → categorical,
-``object_page`` → taxon (with asserted direction, FR-011). Provenance is attached (FR-004).
+kind (FR-005): the dual-slot ``attribute`` mapper emits ``normal_measurement`` → quantitative or
+``object_term`` → categorical per row; ``object_page`` → taxon (with asserted direction, FR-011).
+Provenance is attached (FR-004).
 """
 
 from __future__ import annotations
@@ -20,50 +21,6 @@ from eol_genai_service.contract import (
     Taxon,
     TaxonValue,
 )
-
-
-def map_single_fact_rows(
-    rows: Sequence[dict[str, object]], subject: Taxon, predicate: Predicate
-) -> list[Statement]:
-    """Map measurement rows to quantitative statements with provenance.
-
-    The subject taxon and predicate come from resolution (already validated); rows supply the
-    measurement value and provenance fields.
-    """
-    statements: list[Statement] = []
-    for row in rows:
-        statements.append(
-            Statement(
-                subject=subject,
-                predicate=predicate,
-                value=QuantitativeValue(
-                    amount=float(row["amount"]),  # type: ignore[arg-type]
-                    # Real EOL rows may carry null units; present them as empty, not "None".
-                    units=str(row["units"]) if row.get("units") is not None else "",
-                    normalized=True,
-                ),
-                provenance=_provenance(row),
-            )
-        )
-    return statements
-
-
-def map_categorical_rows(
-    rows: Sequence[dict[str, object]], subject: Taxon, predicate: Predicate
-) -> list[Statement]:
-    """Map ``object_term`` rows to categorical statements (US-2, FR-005)."""
-    statements: list[Statement] = []
-    for row in rows:
-        term = Predicate(uri=str(row["term_uri"]), name=str(row["term_name"]), type="categorical")
-        statements.append(
-            Statement(
-                subject=subject,
-                predicate=predicate,
-                value=CategoricalValue(term=term),
-                provenance=_provenance(row),
-            )
-        )
-    return statements
 
 
 def map_attribute_rows(

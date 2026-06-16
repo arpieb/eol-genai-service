@@ -9,27 +9,27 @@ from eol_genai_service.fixtures import (
 )
 from eol_genai_service.resolution.predicates import CatalogPredicateResolver
 from eol_genai_service.resolution.taxa import CatalogTaxonResolver
+from eol_genai_service.shapes.attribute import build_attribute_query
 from eol_genai_service.shapes.registry import shape_version
-from eol_genai_service.shapes.single_fact import build_single_fact_query
 from eol_genai_service.validator import validate
 
 
-def test_single_fact_query_has_limit_uri_and_passes_validator():
-    q = build_single_fact_query(328583, "VT_0001259", 100)
+def test_attribute_query_has_limit_uri_and_passes_validator():
+    q = build_attribute_query(328583, "VT_0001259", 100)
     assert "LIMIT 100" in q
     assert "VT_0001259" in q
     verdict = validate(q, {"VT_0001259"})
     assert verdict.ok, verdict.violations
 
 
-def test_single_fact_query_uses_integer_page_id_no_injection():
+def test_attribute_query_uses_integer_page_id_no_injection():
     # page_id is coerced to int; a string with cypher in it cannot reach the query.
-    q = build_single_fact_query(328583, "VT_0001259", 100)
+    q = build_attribute_query(328583, "VT_0001259", 100)
     assert "page_id = 328583" in q
 
 
-def test_shape_registry_versions_single_fact():
-    assert shape_version("single_fact") is not None
+def test_shape_registry_versions_attribute():
+    assert shape_version("attribute") is not None
     assert shape_version("not_a_real_shape") is None
 
 

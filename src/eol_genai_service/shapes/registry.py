@@ -11,19 +11,14 @@ from eol_genai_service.shapes import (
     aggregate_count,
     association,
     attribute,
-    categorical_attribute,
     lineage,
     n_hop_chain,
-    single_fact,
 )
 
 SHAPE_VERSIONS: dict[str, str] = {
-    # ``attribute`` is the unified single-hop shape the live pipeline uses for measurement and
-    # categorical predicates; ``single_fact``/``categorical_attribute`` remain as registered
-    # single-slot templates.
+    # ``attribute`` is the unified single-hop shape for measurement and categorical predicates
+    # (it superseded the single-slot ``single_fact``/``categorical_attribute`` templates).
     "attribute": attribute.VERSION,
-    "single_fact": single_fact.VERSION,
-    "categorical_attribute": categorical_attribute.VERSION,
     "association": association.VERSION,
     "aggregate_count": aggregate_count.VERSION,
     "lineage": lineage.VERSION,

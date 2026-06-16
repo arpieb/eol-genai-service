@@ -38,8 +38,7 @@ def test_missing_rollup_supplies_the_parent_term_traversal():
 
 def test_shape_registry_covers_all_modeled_shapes():
     for shape in (
-        "single_fact",
-        "categorical_attribute",
+        "attribute",
         "association",
         "aggregate_count",
         "lineage",
