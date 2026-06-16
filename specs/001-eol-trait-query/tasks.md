@@ -31,8 +31,9 @@ implementation and testing.
 **Purpose**: Project initialization and structure
 
 - [X] T001 Create package + test structure (`src/eol_genai_service/{contract,extraction,resolution,shapes,repair,validator,upstream,orchestration,tools,observability,api}/__init__.py` and `tests/{contract,integration,unit}/`)
-- [ ] T002 Add runtime dependencies via `uv add fastapi pydantic httpx mellea anthropic opentelemetry-sdk opentelemetry-api mcp` (update `pyproject.toml` + `uv.lock`)
-- [ ] T003 [P] Add embeddings + vector-index deps via `uv add` per research.md R2 (e.g. `voyageai` and/or `sentence-transformers` + `faiss-cpu` or `sqlite-vec`)
+- [X] T002a Installed runtime deps: `fastapi`, `pydantic`, `httpx`, `mellea`, `python-dotenv`, `ollama`, `numpy`.
+- [ ] T002b Remaining deps: `opentelemetry-sdk`/`opentelemetry-api` (OTel exporter behind the span sink, see observability) and `mcp` (US-7 tool-surface transport); `anthropic` only if enabling the frontier extractor backend.
+- [X] T003 Embeddings dep `ollama` (numpy direct); no vector-index lib needed — 645-term brute-force numpy (research R2). `voyageai` only for the hosted-embeddings upgrade.
 - [X] T004 [P] Add dev tooling via `uv add --dev pytest ruff` and configure lint/format in `pyproject.toml`
 - [X] T005 [P] Scaffold settings in `src/eol_genai_service/config.py` (EOL JWT, `EOL_CYPHER_URL`, model ids, result cap, cache TTLs, embeddings selection)
 
@@ -50,7 +51,7 @@ validator, the upstream client, resolution/grounding, extraction, and tracing.
 - [X] T008 [P] EOL upstream client skeleton (Principle VII) in `src/eol_genai_service/upstream/client.py`: JWT header, `query`/`format=cypher` params, read-only transport, result cap + `truncated`, timeout/error → `upstream_unavailable`, bounded retry with backoff (no tight loop)
 - [X] T009 [P] Single validator (Principle II) in `src/eol_genai_service/validator/core.py`: `validate(query, resolved_uris) -> Verdict` asserting LIMIT present, all URIs ∈ resolved set (case-sensitive), read-only (per contracts/validator.md)
 - [X] T010 `run_cypher` no-bypass wiring in `src/eol_genai_service/upstream/run_cypher.py`: validator FIRST, execute only on positive verdict, single path to EOL (depends on T008, T009)
-- [ ] T011 Embedded term catalog in `src/eol_genai_service/resolution/index.py`: enumerate predicate/value `Term`s from the graph, embed, persist, query (build + lookup) per research.md R1/R2
+- [X] T011 Embedded term catalog (live, #15): `resolution/predicate_index.py` enumerates predicate `Term`s, embeds (Ollama `mxbai-embed-large`), and cosine-searches; `resolution/taxon_search.py` resolves taxa via EOL's search API. NOTE: persists its own numpy matrix rather than `CatalogIndex` (cleanup candidate — see /speckit-analyze I2).
 - [X] T012 [P] `resolve_predicate(text)` in `src/eol_genai_service/resolution/predicates.py` returning ranked `Term` candidates with scores (depends on T011)
 - [X] T013 [P] `resolve_taxon(name)` in `src/eol_genai_service/resolution/taxa.py`, preferring EOL page/search lookup over name matching (FR-003) (depends on T008, T011)
 - [X] T014 Mellea-constrained extractor (Principle V) in `src/eol_genai_service/extraction/extract.py`: NL → `QueryIntent` (shape/taxon_refs/predicate_refs/rollup/direction_hint/hops) (depends on T006)

@@ -26,6 +26,7 @@ from eol_genai_service.contract import (
 )
 from eol_genai_service.contract import Statement
 from eol_genai_service.extraction.extract import Extractor
+from eol_genai_service.observability import Layer, Span, span
 from eol_genai_service.resolution.predicates import PredicateResolver
 from eol_genai_service.resolution.taxa import TaxonResolver
 from eol_genai_service.shapes.aggregate_count import build_aggregate_count_query
@@ -61,11 +62,27 @@ class PipelineDeps:
     taxon_resolver: TaxonResolver
     client: EolCypherClient
     settings: Settings
+    # Optional collector for layer-tagged spans (Constitution Principle VI). The OTel exporter
+    # consumes it (T002); when None, spans still emit to the trace logger.
+    span_sink: list[Span] | None = None
+
+
+def _run_cypher_traced(query: str, uris: set[str], deps: PipelineDeps):
+    """Execute through the validator-gated client inside a service-extractor span."""
+    with span("run_cypher", Layer.SERVICE_EXTRACTOR, sink=deps.span_sink):
+        return run_cypher(query, uris, deps.client)
 
 
 def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
     """Answer one natural-language question, returning one of the five contract outcomes."""
-    intent = deps.extractor.extract(request.question)
+    # The service-side extractor is the service-extractor layer (Constitution Principle VI).
+    with span(
+        "extract",
+        Layer.SERVICE_EXTRACTOR,
+        model_id=deps.settings.service_model_id,
+        sink=deps.span_sink,
+    ):
+        intent = deps.extractor.extract(request.question)
     if intent.shape == "novel":
         # No modeled single-hop shape matched (US-7 territory); never fabricate an answer.
         return OutOfCapabilityResult(reason="question is not a modeled single-hop shape")
@@ -101,7 +118,7 @@ def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
     cap = deps.settings.result_cap
     query = _build_query(shape, subject.page_id, predicate.uri, cap)
     try:
-        upstream = run_cypher(query, {predicate.uri}, deps.client)
+        upstream = _run_cypher_traced(query, {predicate.uri}, deps)
     except UpstreamUnavailable as exc:
         return UpstreamUnavailableResult(detail=str(exc))
 
@@ -122,7 +139,7 @@ def _answer_count(intent, deps: PipelineDeps) -> Result:
     cap = deps.settings.result_cap
     query = build_aggregate_count_query(predicate.uri, cap)
     try:
-        upstream = run_cypher(query, {predicate.uri}, deps.client)
+        upstream = _run_cypher_traced(query, {predicate.uri}, deps)
     except UpstreamUnavailable as exc:
         return UpstreamUnavailableResult(detail=str(exc))
     # A count is always an answer (zero is a valid count), never no_records.
@@ -140,7 +157,7 @@ def _answer_lineage(request: AnswerRequest, intent, deps: PipelineDeps) -> Resul
     cap = deps.settings.result_cap
     query = build_lineage_query(subject.page_id, cap)
     try:
-        upstream = run_cypher(query, set(), deps.client)  # no ontology URI to resolve
+        upstream = _run_cypher_traced(query, set(), deps)  # no ontology URI to resolve
     except UpstreamUnavailable as exc:
         return UpstreamUnavailableResult(detail=str(exc))
     if not upstream.rows:
