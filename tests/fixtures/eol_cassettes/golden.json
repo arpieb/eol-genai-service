@@ -1,0 +1,105 @@
+[
+ {
+  "question": "what is the body mass of Enhydra lutris?",
+  "shape": "measurement",
+  "scientific_name": "Enhydra lutris",
+  "page_id": 46559130,
+  "predicate": {
+   "uri": "http://purl.obolibrary.org/obo/VT_0001259",
+   "name": "body mass",
+   "type": "measurement"
+  },
+  "expected": {
+   "outcome": "answer",
+   "kind": "quantitative",
+   "predicate_uri": "http://purl.obolibrary.org/obo/VT_0001259",
+   "amount": 23500.0,
+   "n_statements": 8
+  }
+ },
+ {
+  "question": "what is the habitat of Enhydra lutris?",
+  "shape": "categorical",
+  "scientific_name": "Enhydra lutris",
+  "page_id": 46559130,
+  "predicate": {
+   "uri": "http://rs.tdwg.org/dwc/terms/habitat",
+   "name": "habitat",
+   "type": "measurement"
+  },
+  "expected": {
+   "outcome": "answer",
+   "kind": "categorical",
+   "predicate_uri": "http://rs.tdwg.org/dwc/terms/habitat",
+   "term_name": "terrestrial",
+   "n_statements": 2
+  }
+ },
+ {
+  "question": "what does Enhydra lutris eat?",
+  "shape": "association",
+  "scientific_name": "Enhydra lutris",
+  "page_id": 46559130,
+  "predicate": {
+   "uri": "http://purl.obolibrary.org/obo/RO_0002470",
+   "name": "eat",
+   "type": "association"
+  },
+  "expected": {
+   "outcome": "answer",
+   "kind": "taxon",
+   "predicate_uri": "http://purl.obolibrary.org/obo/RO_0002470",
+   "partner": "None",
+   "direction": "subject_to_object",
+   "n_statements": 44
+  }
+ },
+ {
+  "question": "how many taxa have a recorded body mass?",
+  "shape": "count",
+  "scientific_name": null,
+  "page_id": null,
+  "predicate": null,
+  "expected": {
+   "outcome": "answer",
+   "count_nonnegative": true
+  }
+ },
+ {
+  "question": "what is the ancestry of Enhydra lutris?",
+  "shape": "lineage",
+  "scientific_name": "Enhydra lutris",
+  "page_id": 46559130,
+  "predicate": {
+   "uri": "eol:parent",
+   "name": "parent taxon",
+   "type": "association"
+  },
+  "expected": {
+   "outcome": "answer",
+   "kind": "taxon",
+   "predicate_uri": "eol:parent",
+   "partner": "None",
+   "direction": "object_to_subject",
+   "n_statements": 29
+  }
+ },
+ {
+  "question": "what is the body mass of Panthera leo?",
+  "shape": "measurement",
+  "scientific_name": "Panthera leo",
+  "page_id": 328672,
+  "predicate": {
+   "uri": "http://purl.obolibrary.org/obo/VT_0001259",
+   "name": "body mass",
+   "type": "measurement"
+  },
+  "expected": {
+   "outcome": "answer",
+   "kind": "quantitative",
+   "predicate_uri": "http://purl.obolibrary.org/obo/VT_0001259",
+   "amount": 161499.0,
+   "n_statements": 9
+  }
+ }
+]

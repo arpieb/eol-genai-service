@@ -1,0 +1,612 @@
+{
+ "MATCH (p:Page)-[:trait|inferred_trait]->(t:Trait)-[:predicate]->(:Term {uri:'http://purl.obolibrary.org/obo/VT_0001259'}) WHERE p.page_id = 46559130 OPTIONAL MATCH (t)-[:object_term]->(o:Term) OPTIONAL MATCH (t)-[:supplier]->(r:Resource) RETURN t.normal_measurement AS amount, t.normal_units AS units, o.uri AS term_uri, o.name AS term_name, r.resource_id AS resource_id, r.name AS resource_name, t.citation AS citation LIMIT 100": [
+  {
+   "amount": "23500",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 694,
+   "resource_name": "Smith et al 2011",
+   "citation": "NCEAS 2182: Smith: Body size in ecology and paleoecology: Linking pattern and process across spatial, temporal and taxonomic scales , National Center for Ecological Analysis and Synthesis , and Smith F. Macroecological database of mammalian body mass (doi:10.5063/AA/nceas.196.3)"
+  },
+  {
+   "amount": "1909.17",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 693,
+   "resource_name": "Morgan Ernest 2003",
+   "citation": "S. K. Morgan Ernest. 2003. Life history characteristics of placental non-volant mammals. Ecology 84:3402."
+  },
+  {
+   "amount": "12666.67",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 693,
+   "resource_name": "Morgan Ernest 2003",
+   "citation": "S. K. Morgan Ernest. 2003. Life history characteristics of placental non-volant mammals. Ecology 84:3402."
+  },
+  {
+   "amount": "21800",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 693,
+   "resource_name": "Morgan Ernest 2003",
+   "citation": "S. K. Morgan Ernest. 2003. Life history characteristics of placental non-volant mammals. Ecology 84:3402."
+  },
+  {
+   "amount": "26832.8",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 50,
+   "resource_name": "AnAge",
+   "citation": null
+  },
+  {
+   "amount": "12414.82",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 173,
+   "resource_name": "Pantheria",
+   "citation": "Kate E. Jones, Jon Bielby, Marcel Cardillo, Susanne A. Fritz, Justin O'Dell, C. David L. Orme, Kamran Safi, Wes Sechrest, Elizabeth H. Boakes, Chris Carbone, Christina Connolly, Michael J. Cutts, Janine K. Foster, Richard Grenyer, Michael Habib, Christopher A. Plaster, Samantha A. Price, Elizabeth A. Rigby, Janna Rist, Amber Teacher, Olaf R. P. Bininda-Emonds, John L. Gittleman, Georgina M. Mace, and Andy Purvis. 2009. PanTHERIA: a species-level database of life history, ecology, and geography of extant and recently extinct mammals. Ecology 90:2648."
+  },
+  {
+   "amount": "1894.37",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 173,
+   "resource_name": "Pantheria",
+   "citation": "Kate E. Jones, Jon Bielby, Marcel Cardillo, Susanne A. Fritz, Justin O'Dell, C. David L. Orme, Kamran Safi, Wes Sechrest, Elizabeth H. Boakes, Chris Carbone, Christina Connolly, Michael J. Cutts, Janine K. Foster, Richard Grenyer, Michael Habib, Christopher A. Plaster, Samantha A. Price, Elizabeth A. Rigby, Janna Rist, Amber Teacher, Olaf R. P. Bininda-Emonds, John L. Gittleman, Georgina M. Mace, and Andy Purvis. 2009. PanTHERIA: a species-level database of life history, ecology, and geography of extant and recently extinct mammals. Ecology 90:2648."
+  },
+  {
+   "amount": "27410.93",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 173,
+   "resource_name": "Pantheria",
+   "citation": "Kate E. Jones, Jon Bielby, Marcel Cardillo, Susanne A. Fritz, Justin O'Dell, C. David L. Orme, Kamran Safi, Wes Sechrest, Elizabeth H. Boakes, Chris Carbone, Christina Connolly, Michael J. Cutts, Janine K. Foster, Richard Grenyer, Michael Habib, Christopher A. Plaster, Samantha A. Price, Elizabeth A. Rigby, Janna Rist, Amber Teacher, Olaf R. P. Bininda-Emonds, John L. Gittleman, Georgina M. Mace, and Andy Purvis. 2009. PanTHERIA: a species-level database of life history, ecology, and geography of extant and recently extinct mammals. Ecology 90:2648."
+  }
+ ],
+ "MATCH (p:Page)-[:trait|inferred_trait]->(t:Trait)-[:predicate]->(:Term {uri:'http://rs.tdwg.org/dwc/terms/habitat'}) WHERE p.page_id = 46559130 OPTIONAL MATCH (t)-[:object_term]->(o:Term) OPTIONAL MATCH (t)-[:supplier]->(r:Resource) RETURN t.normal_measurement AS amount, t.normal_units AS units, o.uri AS term_uri, o.name AS term_name, r.resource_id AS resource_id, r.name AS resource_name, t.citation AS citation LIMIT 100": [
+  {
+   "amount": null,
+   "units": null,
+   "term_uri": "http://purl.obolibrary.org/obo/ENVO_00000446",
+   "term_name": "terrestrial",
+   "resource_id": 5,
+   "resource_name": "IUCN",
+   "citation": null
+  },
+  {
+   "amount": null,
+   "units": null,
+   "term_uri": "http://purl.obolibrary.org/obo/ENVO_00000569",
+   "term_name": "marine",
+   "resource_id": 5,
+   "resource_name": "IUCN",
+   "citation": null
+  }
+ ],
+ "MATCH (p:Page)-[:trait|inferred_trait]->(t:Trait)-[:predicate]->(:Term {uri:'http://purl.obolibrary.org/obo/RO_0002470'}) WHERE p.page_id = 46559130 MATCH (t)-[:object_page]->(partner:Page) OPTIONAL MATCH (t)-[:supplier]->(r:Resource) RETURN partner.page_id AS partner_page_id, partner.scientific_name AS partner_name, r.resource_id AS resource_id, r.name AS resource_name, t.citation AS citation LIMIT 100": [
+  {
+   "partner_page_id": 46469988,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46568837,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 397163,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 403806,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46573107,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 450283,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46510149,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 450283,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 599668,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46469988,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 45510593,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 66946527,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46573107,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 486386,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46568834,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46508033,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46510149,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 66946527,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 599671,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46508034,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 403806,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 598165,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 45510593,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 598461,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 486386,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 599668,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 397163,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 598461,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46568826,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 486386,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 448838,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46473286,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46507937,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 598175,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46469743,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 598175,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46495455,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46495455,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46495455,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 65894202,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46509099,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 45328049,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 65894202,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  },
+  {
+   "partner_page_id": 46473706,
+   "partner_name": null,
+   "resource_id": 396,
+   "resource_name": "Global Biotic Interactions",
+   "citation": null
+  }
+ ],
+ "MATCH (term:Term)-[:parent_term|synonym_of*0..]->(:Term {uri:'http://purl.obolibrary.org/obo/VT_0001259'}) MATCH (p:Page)-[:trait|inferred_trait]->(:Trait)-[:predicate]->(term) RETURN count(DISTINCT p) AS count LIMIT 1": [
+  {
+   "count": 52685
+  }
+ ],
+ "MATCH (p:Page)-[:parent*1..]->(ancestor:Page) WHERE p.page_id = 46559130 RETURN ancestor.page_id AS ancestor_page_id, ancestor.scientific_name AS ancestor_name LIMIT 100": [
+  {
+   "ancestor_page_id": 46559129,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 46559128,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 7670,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 46559118,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 7662,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 42399419,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 40103843,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 32005829,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 42399417,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 47048864,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 47048248,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 1642,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 4528578,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 4522847,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 3014447,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 3014446,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 46557930,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 8909,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 2775704,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 46557929,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 2774383,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 694,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 8814528,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 3014411,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 1,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 2910700,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 2908256,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 6061725,
+   "ancestor_name": null
+  },
+  {
+   "ancestor_page_id": 2913056,
+   "ancestor_name": null
+  }
+ ],
+ "MATCH (p:Page)-[:trait|inferred_trait]->(t:Trait)-[:predicate]->(:Term {uri:'http://purl.obolibrary.org/obo/VT_0001259'}) WHERE p.page_id = 328672 OPTIONAL MATCH (t)-[:object_term]->(o:Term) OPTIONAL MATCH (t)-[:supplier]->(r:Resource) RETURN t.normal_measurement AS amount, t.normal_units AS units, o.uri AS term_uri, o.name AS term_name, r.resource_id AS resource_id, r.name AS resource_name, t.citation AS citation LIMIT 100": [
+  {
+   "amount": "161499",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 694,
+   "resource_name": "Smith et al 2011",
+   "citation": "NCEAS 2182: Smith: Body size in ecology and paleoecology: Linking pattern and process across spatial, temporal and taxonomic scales , National Center for Ecological Analysis and Synthesis , and Smith F. Macroecological database of mammalian body mass (doi:10.5063/AA/nceas.196.3)"
+  },
+  {
+   "amount": "161499",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 694,
+   "resource_name": "Smith et al 2011",
+   "citation": "NCEAS 2182: Smith: Body size in ecology and paleoecology: Linking pattern and process across spatial, temporal and taxonomic scales , National Center for Ecological Analysis and Synthesis , and Smith F. Macroecological database of mammalian body mass (doi:10.5063/AA/nceas.196.3)"
+  },
+  {
+   "amount": "1377.45",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 693,
+   "resource_name": "Morgan Ernest 2003",
+   "citation": "S. K. Morgan Ernest. 2003. Life history characteristics of placental non-volant mammals. Ecology 84:3402."
+  },
+  {
+   "amount": "8480",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 693,
+   "resource_name": "Morgan Ernest 2003",
+   "citation": "S. K. Morgan Ernest. 2003. Life history characteristics of placental non-volant mammals. Ecology 84:3402."
+  },
+  {
+   "amount": "139500",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 693,
+   "resource_name": "Morgan Ernest 2003",
+   "citation": "S. K. Morgan Ernest. 2003. Life history characteristics of placental non-volant mammals. Ecology 84:3402."
+  },
+  {
+   "amount": "157250",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 599,
+   "resource_name": "Lukas and Clutton Brock 2014",
+   "citation": "Lukas, D. and Clutton-Brock, T. 2014. Costs of mating competition limit male lifetime breeding success in polygynous mammals. Proceedings of the Royal Society B, 281 20140418 doi:10.1098/rspb.2014.0418"
+  },
+  {
+   "amount": "98000",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 50,
+   "resource_name": "AnAge",
+   "citation": null
+  },
+  {
+   "amount": "1291.71",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 173,
+   "resource_name": "Pantheria",
+   "citation": "Kate E. Jones, Jon Bielby, Marcel Cardillo, Susanne A. Fritz, Justin O'Dell, C. David L. Orme, Kamran Safi, Wes Sechrest, Elizabeth H. Boakes, Chris Carbone, Christina Connolly, Michael J. Cutts, Janine K. Foster, Richard Grenyer, Michael Habib, Christopher A. Plaster, Samantha A. Price, Elizabeth A. Rigby, Janna Rist, Amber Teacher, Olaf R. P. Bininda-Emonds, John L. Gittleman, Georgina M. Mace, and Andy Purvis. 2009. PanTHERIA: a species-level database of life history, ecology, and geography of extant and recently extinct mammals. Ecology 90:2648."
+  },
+  {
+   "amount": "158623.93",
+   "units": null,
+   "term_uri": null,
+   "term_name": null,
+   "resource_id": 173,
+   "resource_name": "Pantheria",
+   "citation": "Kate E. Jones, Jon Bielby, Marcel Cardillo, Susanne A. Fritz, Justin O'Dell, C. David L. Orme, Kamran Safi, Wes Sechrest, Elizabeth H. Boakes, Chris Carbone, Christina Connolly, Michael J. Cutts, Janine K. Foster, Richard Grenyer, Michael Habib, Christopher A. Plaster, Samantha A. Price, Elizabeth A. Rigby, Janna Rist, Amber Teacher, Olaf R. P. Bininda-Emonds, John L. Gittleman, Georgina M. Mace, and Andy Purvis. 2009. PanTHERIA: a species-level database of life history, ecology, and geography of extant and recently extinct mammals. Ecology 90:2648."
+  }
+ ]
+}
