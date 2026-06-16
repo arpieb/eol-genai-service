@@ -16,6 +16,7 @@ from __future__ import annotations
 import httpx
 
 from eol_genai_service.contract import Taxon, TaxonCandidate
+from eol_genai_service.upstream.client import UpstreamUnavailable
 
 SEARCH_URL = "https://eol.org/api/search/1.0.json"
 
@@ -28,8 +29,15 @@ class SearchApiTaxonResolver:
         self._k = k
 
     def resolve(self, name: str) -> list[TaxonCandidate]:
-        resp = self._client.get(SEARCH_URL, params={"q": name, "page": 1})
-        resp.raise_for_status()
+        # The search API is an upstream dependency: map its transport / rate-limit (429) / 5xx
+        # failures to the shared ``UpstreamUnavailable`` signal so httpx never leaks through the
+        # TaxonResolver protocol and the pipeline surfaces ``upstream_unavailable`` (like the EOL
+        # Cypher path), not an unhandled crash.
+        try:
+            resp = self._client.get(SEARCH_URL, params={"q": name, "page": 1})
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise UpstreamUnavailable(f"taxon search unavailable: {exc}") from exc
         results = resp.json().get("results", [])[: self._k]
 
         needle = name.strip().lower()

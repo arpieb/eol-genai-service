@@ -4,6 +4,10 @@ Timeout / 5xx / transport error → an explicit ``upstream_unavailable`` outcome
 ``no_records`` (FR-010) and from internal errors; bounded retry with backoff, never a tight loop.
 """
 
+from dataclasses import replace
+
+import httpx
+
 from eol_genai_service.config import Settings
 from eol_genai_service.contract import AnswerRequest
 from eol_genai_service.extraction.extract import RuleBasedExtractor
@@ -17,6 +21,7 @@ from eol_genai_service.fixtures import (
 from eol_genai_service.orchestration.pipeline import PipelineDeps, answer
 from eol_genai_service.resolution.predicates import CatalogPredicateResolver
 from eol_genai_service.resolution.taxa import CatalogTaxonResolver
+from eol_genai_service.resolution.taxon_search import SearchApiTaxonResolver
 from eol_genai_service.upstream.client import EolCypherClient
 
 
@@ -49,6 +54,21 @@ def test_retry_is_bounded_not_a_tight_loop():
 
     answer(AnswerRequest(question="how heavy is a sea otter?"), _deps_with(failing, max_retries=2))
     assert calls["n"] == 3  # initial + exactly 2 retries; bounded
+
+
+def test_search_api_error_during_resolution_maps_to_upstream_unavailable():
+    # The taxon search API is also an upstream: a 429/5xx while resolving the taxon must surface as
+    # upstream_unavailable (not crash), the same outcome as a failed EOL Cypher round-trip.
+    def rate_limited(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429)
+
+    search = SearchApiTaxonResolver(
+        client=httpx.Client(transport=httpx.MockTransport(rate_limited))
+    )
+    deps = replace(build_offline_deps(), taxon_resolver=search)
+    result = answer(AnswerRequest(question="how heavy is a sea otter?"), deps)
+    assert result.outcome == "upstream_unavailable"
+    assert "search" in result.detail.lower()
 
 
 def test_upstream_unavailable_is_distinct_from_no_records():
