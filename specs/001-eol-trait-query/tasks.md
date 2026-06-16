@@ -31,10 +31,10 @@ implementation and testing.
 **Purpose**: Project initialization and structure
 
 - [X] T001 Create package + test structure (`src/eol_genai_service/{contract,extraction,resolution,shapes,repair,validator,upstream,orchestration,tools,observability,api}/__init__.py` and `tests/{contract,integration,unit}/`)
-- [X] T002a Installed runtime deps: `fastapi`, `pydantic`, `httpx`, `mellea`, `python-dotenv`, `ollama`, `numpy`.
+- [X] T002a Installed runtime deps: `fastapi`, `httpx`, `litellm`, `mellea`, `numpy`, `pydantic`, `python-dotenv` (embeddings via litellm, generation via mellea; `ollama` is transitive only — not a direct dep).
 - [X] T002b (OTel) `opentelemetry-api`/`opentelemetry-sdk` added; exporter behind the span sink in `src/eol_genai_service/observability/otel.py` (our layer-tagged `Span` → OTel spans, latency/cost/error attribution preserved), opt-in via a `tracer` injected into `create_app` (per-request span sink → `export_spans`). Tested with an in-memory exporter.
   - [X] T002b (mcp) `mcp` added; **MCP stdio server** in `src/eol_genai_service/tools/server.py` binds the read-only `ToolSurface` (7 tools: resolve_predicate/resolve_taxon/list_predicates/get_schema/run_cypher/single_hop/n_hop_chain) over FastMCP. No write tool, no multi-hop planner (Principle V); run_cypher stays validator-gated through the binding. Tested in-process (list_tools/call_tool) + live-smoke-checked.
-  - [ ] T002b (anthropic) deferred — added only when the frontier extractor backend (`EOL_SERVICE_MODEL_BACKEND=anthropic`) is enabled; Mellea owns backends, so the SDK isn't imported today.
+  - [X] T002b (anthropic) resolved (won't add) — all LLM interactions go through **mellea** (generation) and **litellm** (embeddings). The frontier extractor backend is reached via mellea's backend selection (`EOL_SERVICE_MODEL_BACKEND=anthropic` → `MelleaExtractor` passes it to `mellea.start_session`); this repo never imports the `anthropic` SDK directly, so there is no dep to add. See memory `llm-calls-through-mellea`.
 - [X] T003 Embeddings dep `ollama` (numpy direct); no vector-index lib needed — 645-term brute-force numpy (research R2). `voyageai` only for the hosted-embeddings upgrade.
 - [X] T004 [P] Add dev tooling via `uv add --dev pytest ruff` and configure lint/format in `pyproject.toml`
 - [X] T005 [P] Scaffold settings in `src/eol_genai_service/config.py` (EOL JWT, `EOL_CYPHER_URL`, model ids, result cap, cache TTLs, embeddings selection)
