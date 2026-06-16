@@ -194,6 +194,18 @@ rule is independently testable and version-pinned.
 
 **Alternatives considered**: LLM-driven repair as the default — rejected; non-deterministic, untestable.
 
+**Status (2026-06, D1)**: the runtime repair *loop* is deferred; the rules and capture seam ship as
+staged, tested primitives. Two of the designed repairs are now pre-empted **deterministically at
+build time** — strictly better than retry-after-failure (Principle III): the dual-slot `attribute`
+shape reads both value slots, obviating `categorical-as-numeric`; `shapes.association.
+association_direction(uri)` asserts direction before the query is built, obviating
+`flip-association-direction`. Both removed from `repair/rules.py`. The lone live-relevant rule is
+`missing-rollup`. Rather than wire a speculative retry loop with no failing live case, `MissCapture`
+is wired into the pipeline (records `out_of_capability` gaps only — never `no_records`/
+`needs_clarification`). `MissCapture.summary()` ranks gaps by shape; that data is the trigger for
+building a concrete runtime repair (e.g. a one-shot `missing-rollup` retry, re-validated through the
+no-bypass validator under a `repair` span) when — and only when — captured misses justify it.
+
 ## R9. Observability
 
 **Decision**: OpenTelemetry tracing where **every span carries a `layer` tag** (`client-orchestrator`

@@ -1,9 +1,15 @@
-"""Repair-loop miss capture (T049 — research.md R8).
+"""Repair-loop miss capture (T049 — research.md R8 / D1).
 
-The repair loop is rules-first; when no deterministic rule resolves a case, that miss is captured
-so the rule set can be grown over time. This is the in-memory capture surface; a durable sink
-(log/store) plugs in behind :meth:`record`. :meth:`summary` ranks misses by shape so the most
-common gaps are addressed first.
+When the service cannot shape a query for a question it returns ``out_of_capability``; the pipeline
+records that as a :class:`RepairMiss` here (only genuine gaps — never ``no_records``, which is a
+valid answer per Principle VII, nor ``needs_clarification``, which is healthy disambiguation). This
+is the live observability seam that turns capability gaps into data: :meth:`summary` ranks misses by
+shape so the most common gaps are addressed first, and that ranking is what justifies wiring a
+concrete runtime repair (e.g. ``missing-rollup`` retry) before writing speculative loop code.
+
+This is the in-memory capture surface; a durable sink (log/store) plugs in behind :meth:`record`.
+It is opt-in: ``PipelineDeps.miss_capture`` defaults to None, so capture is off unless a caller
+provides a collector.
 """
 
 from __future__ import annotations

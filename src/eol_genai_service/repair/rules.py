@@ -1,32 +1,28 @@
-"""Deterministic, versioned repair rules (T016 / T031 / T034 — Constitution Principle III).
+"""Deterministic, versioned repair rules (T016 — Constitution Principle III).
 
 The repair loop is rules-first, model-last (research.md R8). Each rule is a pure, independently
-testable transform with a stable id+version. These encode domain fixes for known mis-shapings:
+testable transform with a stable id+version.
 
-- ``categorical-as-numeric`` — a categorical predicate queried for a numeric measurement reads the
-  wrong slot; the correct value slot is ``object_term`` (FR-005).
-- ``flip-association-direction`` — an inverted association direction is flipped and re-asserted
-  (FR-011); ``RO_0002471`` ("eaten by") is trivially invertible into nonsense.
+**Status (2026-06): the live runtime repair *loop* is deferred (D1).** Two of the three repairs
+originally designed here are now pre-empted *deterministically at build time*, which is strictly
+better than retry-after-failure (Principle III):
 
-Wiring these into the live repair loop (retry-on-empty/mismatch) is tracked separately; here they
-are the versioned, tested primitives that loop will call.
+- ``categorical-as-numeric`` (read ``object_term`` instead of ``normal_measurement``) is obviated by
+  the dual-slot ``attribute`` shape, which reads **both** value slots in one query, so a categorical
+  predicate never empties from reading the wrong slot. Removed.
+- ``flip-association-direction`` is obviated by ``shapes.association.association_direction(uri)``,
+  which asserts the correct direction *before* the query is built. Removed.
+
+That leaves ``missing-rollup`` as the one repair a future runtime loop would still apply (add the
+``parent_term|synonym_of*0..`` traversal when a category under-counts its sub-types, FR-006). It is
+kept here as the versioned primitive that loop will call. The loop itself is wired only once
+``MissCapture`` (capture.py, now live in the pipeline) shows a concrete case that justifies it — see
+research.md R8 for the staged ramp.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-
-_OPPOSITE_DIRECTION = {
-    "subject_to_object": "object_to_subject",
-    "object_to_subject": "subject_to_object",
-}
-
-# Correct value slot for each predicate type (FR-005).
-_SLOT_BY_TYPE = {
-    "measurement": "normal_measurement",
-    "categorical": "object_term",
-    "association": "object_page",
-}
 
 
 @dataclass(frozen=True)
@@ -37,8 +33,6 @@ class RepairRule:
 
 
 REPAIR_RULES: tuple[RepairRule, ...] = (
-    RepairRule("categorical-as-numeric", "1.0.0", "Read object_term for a categorical predicate"),
-    RepairRule("flip-association-direction", "1.0.0", "Flip an inverted association direction"),
     RepairRule("missing-rollup", "1.0.0", "Add the parent_term roll-up traversal for a category"),
 )
 
@@ -57,13 +51,3 @@ def rule_version(rule_id: str) -> str | None:
         if rule.id == rule_id:
             return rule.version
     return None
-
-
-def correct_value_slot(predicate_type: str) -> str | None:
-    """The value slot a predicate of this type should be read from (``categorical-as-numeric``)."""
-    return _SLOT_BY_TYPE.get(predicate_type)
-
-
-def flip_direction(direction: str) -> str:
-    """Flip an association direction (``flip-association-direction``)."""
-    return _OPPOSITE_DIRECTION[direction]
