@@ -100,9 +100,13 @@ the offline extractor/resolvers as a useful intermediate milestone.
   queries** as ground truth; confirm ≥90% on the live held-out set.
 - [ ] **SC-006**: re-run the latency check against the live path (Ollama extract + Voyage retrieve +
   one upstream query); confirm **p95 ≤ 5 s** warm-cache.
-- [ ] **Record fixtures for CI**: capture real EOL responses (VCR-style) so `uv run pytest` stays
-  **offline and green** in CI — never hit live EOL or burn keys in CI.
-- [ ] SC-002/SC-003/SC-004/SC-005 already pass structurally; re-run against recorded fixtures.
+- [x] **Recorded fixtures for CI**: `scripts/record_eol_cassettes.py` captures real EOL responses
+  to `tests/fixtures/eol_cassettes/`; `tests/integration/test_eol_recorded.py` replays them (no
+  skipif) so the EOL-facing pipeline — validator (full URIs), attribute shape, neo4j→contract
+  mapping, search-API taxon resolver — runs in **CI with no JWT/network**, against real data.
+- [x] SC-002/SC-003 (validator) pass structurally; the type-gap/categorical and search paths now
+  also run against recorded real EOL rows in CI. (The Mellea/embeddings paths still need a local
+  model, so those live tests remain skip-only.)
 
 ## 7. Rollout / governance
 
