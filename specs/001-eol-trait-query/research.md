@@ -44,11 +44,21 @@ the hot path). The catalog is small (10^3–10^5 terms) and bounded, with a conf
 disambiguation fallback catching the tail, so a strong local model is very likely sufficient.
 
 **Caveat — embeddings are load-bearing, so prove it**: unlike the extractor (R3), embedding quality
-directly drives SC-001/SC-004. Before trusting the local default at scale, run a **recall@k
-bake-off** (local vs Voyage) measuring the rank of the correct ontology URI for paraphrased/synonym
-queries on a labeled term set; keep Voyage configurable for the hard grounding tail. **Catalog and
-query embeddings MUST use the same model** — switching providers invalidates the persisted index
-(requires `CatalogIndex.rebuild()`).
+directly drives SC-001/SC-004. **Catalog and query embeddings MUST use the same model** — switching
+providers invalidates the persisted index (requires `CatalogIndex.rebuild()`).
+
+**Bake-off results (Branch C — local `mxbai-embed-large`, 14 labeled predicate phrases over the
+real 645-term catalog; harness in `eval/recall.py`, gate in `test_recall_bakeoff.py`)**:
+- **R@1 = 50%, R@3 = 86%, R@5 = 86%, MRR = 0.69, mean correct-candidate score = 0.78.**
+- *Verdict*: local default is **good enough for the disambiguation-backed pipeline** — the correct
+  URI is in the top-3 ~86% of the time, and correct candidates score ~0.78, comfortably above the
+  live confidence gate (0.5, **confirmed** by these numbers). The pipeline presents the top
+  contenders for clarification rather than blind-picking, so R@3 is the operative metric.
+- *Where it's weak*: R@1 = 50% — a synonym/related term often outranks the canonical one (e.g.
+  "weigh" → *weight* over *body mass*), and some paraphrases miss entirely ("where does it live" did
+  not surface *habitat* in top-10). Higher R@1 (fewer clarifications, more direct answers) is the
+  main reason to consider the **Voyage upgrade** — the harness accepts any embedder, so re-run with
+  `voyage-3-large` when a key is available to quantify the gain before committing cost/keys.
 
 **Rationale**: The catalog is small, so a local index gives sub-millisecond lookups, zero per-query
 upstream load (Principle VII), and full offline testability. Keeping the embeddings model behind a
