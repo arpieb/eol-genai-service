@@ -1,8 +1,10 @@
 """Offline tests for the EOL search-API taxon resolver (T011) — mocked httpx."""
 
 import httpx
+import pytest
 
 from eol_genai_service.resolution.taxon_search import SearchApiTaxonResolver
+from eol_genai_service.upstream.client import UpstreamUnavailable
 
 # Recorded shapes from the live search API.
 _RESPONSES = {
@@ -48,3 +50,25 @@ def test_by_page_id_returns_taxon_for_resubmit():
     taxon = _resolver().by_page_id(328598)
     assert taxon is not None
     assert taxon.page_id == 328598
+
+
+def test_rate_limit_maps_to_upstream_unavailable():
+    # A 429 (or any 5xx) from the search API surfaces as the shared upstream signal, not an httpx
+    # error leaking through the resolver protocol.
+    def rate_limited(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429)
+
+    resolver = SearchApiTaxonResolver(
+        client=httpx.Client(transport=httpx.MockTransport(rate_limited))
+    )
+    with pytest.raises(UpstreamUnavailable):
+        resolver.resolve("Enhydra lutris")
+
+
+def test_transport_error_maps_to_upstream_unavailable():
+    def down(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("search api unreachable")
+
+    resolver = SearchApiTaxonResolver(client=httpx.Client(transport=httpx.MockTransport(down)))
+    with pytest.raises(UpstreamUnavailable):
+        resolver.resolve("Enhydra lutris")

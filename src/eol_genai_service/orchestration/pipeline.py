@@ -87,7 +87,12 @@ def answer(request: AnswerRequest, deps: PipelineDeps) -> Result:
         sink=deps.span_sink,
     ):
         intent = deps.extractor.extract(request.question)
-    result = _route(request, intent, deps)
+    try:
+        result = _route(request, intent, deps)
+    except UpstreamUnavailable as exc:
+        # Resolution also touches an upstream (the EOL search API); a failure there gets the same
+        # contract outcome as a failed Cypher round-trip rather than escaping as an error.
+        return UpstreamUnavailableResult(detail=str(exc))
     # An out_of_capability outcome is a genuine gap — the service could not shape a query for this
     # question. Capture it (never no_records, valid per Principle VII; never needs_clarification,
     # which is healthy disambiguation) so the repair rule set grows from real misses (R8 / D1).
