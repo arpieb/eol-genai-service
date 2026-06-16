@@ -11,7 +11,7 @@ import pytest
 
 from eol_genai_service.config import Settings, load_env
 from eol_genai_service.contract import Predicate, Taxon
-from eol_genai_service.resolution.embeddings import OllamaEmbedder
+from eol_genai_service.factory import build_embedder
 from eol_genai_service.resolution.predicate_index import (
     EmbeddingPredicateResolver,
     PredicateEmbeddingIndex,
@@ -44,7 +44,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(scope="module")
 def predicate_resolver() -> EmbeddingPredicateResolver:
-    embedder = OllamaEmbedder(_SETTINGS.embeddings_model_id)
+    embedder = build_embedder(_SETTINGS)
     transport = HttpEolTransport(_SETTINGS)
     index = PredicateEmbeddingIndex.build(enumerate_predicate_terms(transport), embedder)
     return EmbeddingPredicateResolver(index, embedder)

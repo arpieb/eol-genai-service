@@ -19,7 +19,7 @@ from eol_genai_service.config import Settings, load_env
 from eol_genai_service.extraction.mellea_extractor import MelleaExtractor
 from eol_genai_service.fixtures import build_offline_deps
 from eol_genai_service.orchestration.pipeline import PipelineDeps
-from eol_genai_service.resolution.embeddings import OllamaEmbedder
+from eol_genai_service.resolution.embeddings import QUERY_PREFIX, Embedder, LiteLLMEmbedder
 from eol_genai_service.resolution.predicate_index import (
     EmbeddingPredicateResolver,
     PredicateEmbeddingIndex,
@@ -47,7 +47,7 @@ def build_deps(settings: Settings | None = None) -> PipelineDeps:
 
     settings = _with_embedding_thresholds(settings)
     transport = HttpEolTransport(settings)
-    embedder = OllamaEmbedder(settings.embeddings_model_id)
+    embedder = build_embedder(settings)
     return PipelineDeps(
         extractor=MelleaExtractor(settings),
         predicate_resolver=_build_or_load_predicate_resolver(transport, embedder),
@@ -55,6 +55,18 @@ def build_deps(settings: Settings | None = None) -> PipelineDeps:
         client=EolCypherClient(settings, transport),
         settings=settings,
     )
+
+
+def build_embedder(settings: Settings) -> Embedder:
+    """The configured embedder: ``<backend>/<model_id>`` as a litellm model string.
+
+    The asymmetric query prefix is model-specific (mxbai needs it; most others don't), so it's
+    derived here and lives inside the embedder. Catalog and query embeddings share this one builder
+    so they always use the same model (the index-consistency invariant).
+    """
+    model = f"{settings.embeddings_backend}/{settings.embeddings_model_id}"
+    query_prefix = QUERY_PREFIX if "mxbai" in settings.embeddings_model_id.lower() else ""
+    return LiteLLMEmbedder(model, query_prefix=query_prefix)
 
 
 def _build_or_load_predicate_resolver(transport, embedder) -> EmbeddingPredicateResolver:

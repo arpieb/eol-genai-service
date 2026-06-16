@@ -11,7 +11,7 @@ import pytest
 from eol_genai_service.config import Settings, load_env
 from eol_genai_service.eval.labeled_predicates import LABELED
 from eol_genai_service.eval.recall import evaluate
-from eol_genai_service.resolution.embeddings import OllamaEmbedder
+from eol_genai_service.factory import build_embedder
 from eol_genai_service.resolution.predicate_index import (
     EmbeddingPredicateResolver,
     PredicateEmbeddingIndex,
@@ -38,7 +38,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(scope="module")
 def graded():
-    embedder = OllamaEmbedder(_SETTINGS.embeddings_model_id)
+    embedder = build_embedder(_SETTINGS)
     terms = enumerate_predicate_terms(HttpEolTransport(_SETTINGS))
     name_to_uri = {t.name.lower(): t.uri for t in terms if t.name}
     resolver = EmbeddingPredicateResolver(
