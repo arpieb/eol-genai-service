@@ -55,8 +55,8 @@ class Settings(BaseModel):
     # bake-off before scale; see research R2). Default to a local Ollama model: no key, offline,
     # and off the hot path (every query embeds the user's phrase). Voyage is a configurable upgrade
     # (set EOL_EMBEDDINGS_BACKEND=voyage and EOL_EMBEDDINGS_MODEL_ID=voyage-3-large).
-    # NOTE: catalog and query embeddings MUST use the same model — changing it requires an index
-    # rebuild (CatalogIndex.rebuild()).
+    # NOTE: catalog and query embeddings MUST use the same model — changing it requires rebuilding
+    # the persisted index (delete `.cache/predicate_index`).
     embeddings_backend: str = "ollama"  # "ollama" (local default) | "voyage"
     embeddings_model_id: str = "mxbai-embed-large"
 
