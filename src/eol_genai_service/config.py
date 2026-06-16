@@ -52,12 +52,13 @@ class Settings(BaseModel):
     service_model_backend: str = "ollama"  # "ollama" (local default) | "anthropic"
     service_model_id: str = "granite4.1:3b"
     # Embeddings (the term→URI grounding, Principle IV — load-bearing, so subject to a recall@k
-    # bake-off before scale; see research R2). Default to a local Ollama model: no key, offline,
-    # and off the hot path (every query embeds the user's phrase). Voyage is a configurable upgrade
-    # (set EOL_EMBEDDINGS_BACKEND=voyage and EOL_EMBEDDINGS_MODEL_ID=voyage-3-large).
+    # bake-off before scale; see research R2). Routed through litellm, so the backend is any litellm
+    # provider prefix and the service imports no provider SDK. Default to a local Ollama model: no
+    # key, offline, off the hot path. Backend+model compose into the litellm id `<backend>/<model>`
+    # (e.g. EOL_EMBEDDINGS_BACKEND=voyage + EOL_EMBEDDINGS_MODEL_ID=voyage-3-large → voyage/voyage-3-large).
     # NOTE: catalog and query embeddings MUST use the same model — changing it requires rebuilding
     # the persisted index (delete `.cache/predicate_index`).
-    embeddings_backend: str = "ollama"  # "ollama" (local default) | "voyage"
+    embeddings_backend: str = "ollama"  # litellm provider prefix: ollama (local) | voyage | …
     embeddings_model_id: str = "mxbai-embed-large"
 
     # Resolution confidence gates. Defaults suit exact-match (offline) scores; the live embedding
