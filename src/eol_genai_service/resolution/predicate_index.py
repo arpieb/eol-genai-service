@@ -20,7 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
-from eol_genai_service.contract import PredicateCandidate
+from eol_genai_service.contract import Predicate, PredicateCandidate
 from eol_genai_service.resolution.embeddings import Embedder
 from eol_genai_service.resolution.predicates import PredicateTerm
 
@@ -76,6 +76,11 @@ class PredicateEmbeddingIndex:
         top = np.argsort(sims)[::-1][:k]
         return [(self._terms[i], float(sims[i])) for i in top]
 
+    @property
+    def predicates(self) -> list[Predicate]:
+        """The catalog as contract ``Predicate``s (for the discovery tool ``list_predicates``)."""
+        return [Predicate(uri=t.uri, name=t.name, type=t.type) for t in self._terms]
+
     def save(self, directory: str | Path) -> None:
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
@@ -115,3 +120,7 @@ class EmbeddingPredicateResolver:
             PredicateCandidate(uri=term.uri, name=term.name, type=term.type, score=score)
             for term, score in self._index.search(query_vec, self._k)
         ]
+
+    def catalog(self) -> list[Predicate]:
+        """The full controlled predicate catalog (backs the ``list_predicates`` discovery tool)."""
+        return self._index.predicates
