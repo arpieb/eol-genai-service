@@ -8,11 +8,14 @@ in behind :class:`Span` later without changing call sites.
 
 from __future__ import annotations
 
+import logging
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import Enum
-from collections.abc import Iterator
+
+_log = logging.getLogger("eol_genai_service.trace")
 
 
 class Layer(str, Enum):
@@ -60,6 +63,16 @@ def span(
         raise
     finally:
         s.latency_ms = (time.perf_counter() - start) * 1000.0
+        _log.debug(
+            "span layer=%s name=%s latency_ms=%.1f model=%s tokens_in=%d tokens_out=%d error=%s",
+            s.layer.value,
+            s.name,
+            s.latency_ms,
+            s.model_id,
+            s.tokens_in,
+            s.tokens_out,
+            s.error,
+        )
         if sink is not None:
             sink.append(s)
 
