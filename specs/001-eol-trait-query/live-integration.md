@@ -104,6 +104,12 @@ the offline extractor/resolvers as a useful intermediate milestone.
   to `tests/fixtures/eol_cassettes/`; `tests/integration/test_eol_recorded.py` replays them (no
   skipif) so the EOL-facing pipeline — validator (full URIs), attribute shape, neo4j→contract
   mapping, search-API taxon resolver — runs in **CI with no JWT/network**, against real data.
+- [x] **Recorded full-`answer()` (U1)**: `tests/integration/test_recorded_answer.py` routes a
+  natural question through the *entire* pipeline (extract → resolve → validate → run_cypher[recorded]
+  → map → `AnswerResult`) over the recorded transport, asserting the contract outcome carries the
+  real recorded value/provenance — both the quantitative (body mass 5525) and categorical type-gap
+  (habitat "marine benthic") paths. Closes the gap where only the EOL-facing layers, not `answer()`
+  itself, were exercised against real recorded rows.
 - [x] SC-002/SC-003 (validator) pass structurally; the type-gap/categorical and search paths now
   also run against recorded real EOL rows in CI. (The Mellea/embeddings paths still need a local
   model, so those live tests remain skip-only.)
