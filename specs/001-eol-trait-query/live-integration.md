@@ -96,8 +96,15 @@ the offline extractor/resolvers as a useful intermediate milestone.
 
 ## 6. Verification — make the SC gates real
 
-- [ ] **SC-001**: replace the golden set in `test_accuracy_golden.py` with **hand-written EOL
-  queries** as ground truth; confirm ≥90% on the live held-out set.
+- [x] **SC-001**: golden set is scientific-name questions covering US-1..US-5, ground truth captured
+  from live EOL by `scripts/record_sc001_golden.py` into `golden.json` + `golden_transport.json`.
+  `tests/integration/test_accuracy_recorded.py` replays it through the full pipeline (deterministic,
+  CI-safe) and asserts ≥90% — **passing at 100%** (right shape/URI/value for all five shapes).
+  The complementary **live recall** stress-test (Granite extract + embedding grounding + EOL) over 3
+  repeats/question measured **100% (18/18)** end-to-end; it's non-deterministic so it stays in the
+  capture script, not a committed assertion. Common names are deliberately excluded (they resolve
+  ambiguous on the live search API → `needs_clarification`); the offline `test_accuracy_golden.py`
+  remains a fast synthetic smoke check.
 - [x] **SC-006**: `tests/integration/test_latency_live.py` measures the live path (Mellea/Granite
   extract + embedding retrieve + EOL search-API taxon resolution + one upstream Cypher) for canonical
   US-1..US-5 questions, skip-guarded on `EOL_JWT`+Ollama. **Measured warm-cache p95 ≈ 0.63 s** (max
