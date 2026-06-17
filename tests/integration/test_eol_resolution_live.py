@@ -5,10 +5,9 @@ EOL-enumerated catalog → full body-mass URI), taxon resolution (search API →
 attribute answer mapped from live EOL data.
 """
 
-import urllib.request
-
 import pytest
 
+from support import ollama_up
 from eol_genai_service.config import Settings, load_env
 from eol_genai_service.contract import Predicate, Taxon
 from eol_genai_service.factory import build_embedder
@@ -29,16 +28,8 @@ _SETTINGS = Settings.from_env()
 _BODY_MASS = "http://purl.obolibrary.org/obo/VT_0001259"
 
 
-def _ollama_up() -> bool:
-    try:
-        urllib.request.urlopen("http://localhost:11434/api/tags", timeout=2)
-        return True
-    except Exception:
-        return False
-
-
 pytestmark = pytest.mark.skipif(
-    not (_SETTINGS.eol_jwt and _ollama_up()), reason="needs EOL_JWT + Ollama"
+    not (_SETTINGS.eol_jwt and ollama_up()), reason="needs EOL_JWT + Ollama"
 )
 
 

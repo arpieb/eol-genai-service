@@ -12,24 +12,24 @@ embedding resolver actually ground each question — is measured by the same cap
 100% on this set; it is non-deterministic, so it is not a committed CI assertion.
 """
 
-import json
-import re
-from pathlib import Path
-
-import httpx
-
 from eol_genai_service.config import Settings
 from eol_genai_service.contract import AnswerRequest
 from eol_genai_service.extraction.extract import RuleBasedExtractor
 from eol_genai_service.orchestration.pipeline import PipelineDeps, answer
 from eol_genai_service.resolution.predicates import CatalogPredicateResolver, PredicateTerm
-from eol_genai_service.resolution.taxon_search import SearchApiTaxonResolver
 from eol_genai_service.upstream.client import EolCypherClient
+from support import (
+    BODY_MASS,
+    EATS,
+    HABITAT,
+    load_cassette,
+    recorded_search_resolver,
+    replay_transport,
+)
 
-_CASS = Path(__file__).resolve().parent.parent / "fixtures" / "eol_cassettes"
-_GOLDEN = json.loads((_CASS / "golden.json").read_text())
-_TRANSPORT = json.loads((_CASS / "golden_transport.json").read_text())
-_SEARCH = json.loads((_CASS / "search.json").read_text())
+_GOLDEN = load_cassette("golden.json")
+_TRANSPORT = load_cassette("golden_transport.json")
+_SEARCH = load_cassette("search.json")
 
 SC001_TARGET = 0.90
 
@@ -38,18 +38,10 @@ SC001_TARGET = 0.90
 # to the captured URI so the offline RuleBasedExtractor + CatalogPredicateResolver stand in for the
 # live Granite + embedding grounding (which the capture script measures separately).
 _PRED_ALIASES = {
-    "http://purl.obolibrary.org/obo/VT_0001259": ("body mass", "mass", "weight", "how heavy"),
-    "http://rs.tdwg.org/dwc/terms/habitat": ("habitat", "lives in", "biome"),
-    "http://purl.obolibrary.org/obo/RO_0002470": ("eat", "eats", "diet", "preys on"),
+    BODY_MASS: ("body mass", "mass", "weight", "how heavy"),
+    HABITAT: ("habitat", "lives in", "biome"),
+    EATS: ("eat", "eats", "diet", "preys on"),
 }
-
-
-def _norm(query: str) -> str:
-    return re.sub(r"\s+", " ", query).strip()
-
-
-def _replay_transport(query: str, fmt: str) -> list[dict]:
-    return _TRANSPORT[_norm(query)]
 
 
 def _predicate_catalog() -> list[PredicateTerm]:
@@ -63,13 +55,6 @@ def _predicate_catalog() -> list[PredicateTerm]:
     return list(seen.values())
 
 
-def _recorded_search_resolver() -> SearchApiTaxonResolver:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json=_SEARCH[request.url.params["q"].lower()])
-
-    return SearchApiTaxonResolver(client=httpx.Client(transport=httpx.MockTransport(handler)))
-
-
 def _recorded_deps() -> PipelineDeps:
     pred_forms = {a for aliases in _PRED_ALIASES.values() for a in aliases}
     taxon_forms = {e["scientific_name"].lower() for e in _GOLDEN if e["scientific_name"]}
@@ -77,8 +62,8 @@ def _recorded_deps() -> PipelineDeps:
     return PipelineDeps(
         extractor=RuleBasedExtractor(pred_forms, taxon_forms),
         predicate_resolver=CatalogPredicateResolver(_predicate_catalog()),
-        taxon_resolver=_recorded_search_resolver(),
-        client=EolCypherClient(settings, _replay_transport),
+        taxon_resolver=recorded_search_resolver(_SEARCH),
+        client=EolCypherClient(settings, replay_transport(_TRANSPORT)),
         settings=settings,
     )
 

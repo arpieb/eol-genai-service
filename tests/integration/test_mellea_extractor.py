@@ -6,10 +6,9 @@ RuleBasedExtractor remains the default everywhere else). Spike 1 (constrained de
 parses) and Spike 2 (canonical-shape quality) are the assertions below.
 """
 
-import urllib.request
-
 import pytest
 
+from support import ollama_up
 from eol_genai_service.config import Settings
 from eol_genai_service.contract import AnswerRequest
 from eol_genai_service.extraction.mellea_extractor import MelleaExtractor
@@ -24,15 +23,7 @@ from eol_genai_service.resolution.taxa import CatalogTaxonResolver
 from eol_genai_service.upstream.client import EolCypherClient
 
 
-def _ollama_up() -> bool:
-    try:
-        urllib.request.urlopen("http://localhost:11434/api/tags", timeout=2)
-        return True
-    except Exception:
-        return False
-
-
-pytestmark = pytest.mark.skipif(not _ollama_up(), reason="Ollama not reachable on :11434")
+pytestmark = pytest.mark.skipif(not ollama_up(), reason="Ollama not reachable on :11434")
 
 
 @pytest.fixture(scope="module")

@@ -12,15 +12,17 @@ here (Constitution I). Field shapes mirror `data-model.md` §2.
 ```json
 {
   "question": "how heavy is a sea otter?",
-  "chosen": { "kind": "taxon", "page_id": 328583 },
-  "max_results": 100
+  "chosen": { "kind": "taxon", "page_id": 328583 }
 }
 ```
 
 - `question` (required): unstructured natural-language biodiversity question (FR-001).
 - `chosen` (optional): a disambiguation selection echoed back from a prior `needs_clarification`
   response (FR-014, stateless). `kind` ∈ `taxon | predicate`; carries the chosen `page_id`/`uri`.
-- `max_results` (optional): client hint, clamped to the service's deliberate cap (Constitution VII).
+
+The result size is governed solely by the service's deliberate cap (Constitution VII); there is no
+client-tunable size hint (a per-request cap below the service cap would need cap-aware truncation
+to avoid silent drops, SC-005 — out of scope until a client needs it).
 
 ### Response — tagged by `outcome`
 

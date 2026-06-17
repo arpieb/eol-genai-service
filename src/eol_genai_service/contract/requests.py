@@ -24,4 +24,3 @@ class AnswerRequest(BaseModel):
 
     question: str = Field(min_length=1)
     chosen: ChosenSelection | None = None
-    max_results: int | None = Field(default=None, ge=1)  # client hint, clamped to service cap

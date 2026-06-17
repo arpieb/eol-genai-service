@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from eol_genai_service.contract import Predicate, PredicateCandidate, TaxonCandidate
 from eol_genai_service.orchestration.pipeline import PipelineDeps
 from eol_genai_service.shapes.n_hop_chain import (
-    VALID_DIRECTIONS,
     build_n_hop_chain_query,
     build_set_hop_query,
 )
@@ -89,11 +88,13 @@ class ToolSurface:
         return run_cypher(query, resolved_uris, self._deps.client)
 
     def single_hop(self, page_ids: set[int], predicate_uri: str, direction: str) -> HopResult:
-        """One association hop over a SET of page_ids, returning a SET (R7 cardinality guard)."""
-        if direction not in VALID_DIRECTIONS:
-            raise ValueError(f"invalid direction: {direction!r}")
+        """One association hop over a SET of page_ids, returning a SET (R7 cardinality guard).
+
+        ``direction`` is honored in the query (no silent inversion, FR-011) — the builder rejects an
+        invalid value.
+        """
         cap = self._deps.settings.result_cap
-        query = build_set_hop_query(page_ids, predicate_uri, cap)
+        query = build_set_hop_query(page_ids, predicate_uri, cap, direction)
         result = run_cypher(query, {predicate_uri}, self._deps.client)
         partners = frozenset(int(r["partner_page_id"]) for r in result.rows)
         return HopResult(page_ids=partners, truncated=result.truncated)

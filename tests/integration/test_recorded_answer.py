@@ -13,10 +13,6 @@ id, so the seeded taxa use synthetic surface forms (``specimen a/b``) — the as
 recorded measurement/category values and provenance, not taxonomic identity.
 """
 
-import json
-import re
-from pathlib import Path
-
 from eol_genai_service.config import Settings
 from eol_genai_service.contract import AnswerRequest
 from eol_genai_service.extraction.extract import RuleBasedExtractor
@@ -25,24 +21,21 @@ from eol_genai_service.repair.capture import MissCapture
 from eol_genai_service.resolution.predicates import CatalogPredicateResolver, PredicateTerm
 from eol_genai_service.resolution.taxa import CatalogTaxonResolver, TaxonRecord
 from eol_genai_service.upstream.client import EolCypherClient
+from support import BODY_MASS, HABITAT, load_cassette, replay_transport
 
-_CASSETTES = Path(__file__).resolve().parent.parent / "fixtures" / "eol_cassettes"
-_TRANSPORT = json.loads((_CASSETTES / "transport.json").read_text())
-
-_BODY_MASS = "http://purl.obolibrary.org/obo/VT_0001259"
-_HABITAT = "http://rs.tdwg.org/dwc/terms/habitat"
+_TRANSPORT = load_cassette("transport.json")
 
 # Real EOL grounding values (full URIs); habitat is measurement-typed in EOL though its value is
 # categorical (the type-gap path the dual-slot attribute shape handles).
 _PREDICATES = [
     PredicateTerm(
-        uri=_BODY_MASS,
+        uri=BODY_MASS,
         name="body mass",
         type="measurement",
         aliases=("body mass", "how heavy", "heavy", "weigh", "mass", "weight"),
     ),
     PredicateTerm(
-        uri=_HABITAT,
+        uri=HABITAT,
         name="habitat",
         type="measurement",
         aliases=("habitat", "lives in", "live", "where does", "biome", "environment"),
@@ -56,15 +49,6 @@ _TAXA = [
 ]
 
 
-def _norm(query: str) -> str:
-    return re.sub(r"\s+", " ", query).strip()
-
-
-def _replay_transport(query: str, fmt: str) -> list[dict]:
-    """Return the recorded rows for a query (KeyError if the pipeline built an unrecorded query)."""
-    return _TRANSPORT[_norm(query)]
-
-
 def _recorded_deps(miss_capture: MissCapture | None = None) -> PipelineDeps:
     # result_cap=5 so the built query matches the recorded transport key (recorded at cap 5).
     settings = Settings(result_cap=5)
@@ -74,7 +58,7 @@ def _recorded_deps(miss_capture: MissCapture | None = None) -> PipelineDeps:
         extractor=RuleBasedExtractor(pred_forms, taxon_forms),
         predicate_resolver=CatalogPredicateResolver(_PREDICATES),
         taxon_resolver=CatalogTaxonResolver(_TAXA),
-        client=EolCypherClient(settings, _replay_transport),
+        client=EolCypherClient(settings, replay_transport(_TRANSPORT)),
         settings=settings,
         miss_capture=miss_capture,
     )
@@ -88,7 +72,7 @@ def test_full_answer_quantitative_from_recorded_eol():
     assert result.cap == 5
     stmt = result.statements[0]
     assert stmt.subject.page_id == 328598  # the page the pipeline resolved + queried
-    assert stmt.predicate.uri == _BODY_MASS
+    assert stmt.predicate.uri == BODY_MASS
     assert stmt.value.kind == "quantitative"
     assert stmt.value.amount == 5525.0  # real recorded EOL value
     assert stmt.provenance.resource["name"] == "Smith et al 2011"

@@ -28,7 +28,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]  # "tests" so shared helpers import as `from support import ...`
 testpaths = ["tests"]
 
 [tool.ruff]

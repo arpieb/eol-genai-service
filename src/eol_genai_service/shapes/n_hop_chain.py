@@ -21,14 +21,34 @@ VERSION = "1.0.0"
 VALID_DIRECTIONS = ("subject_to_object", "object_to_subject")
 
 
-def build_set_hop_query(page_ids: Iterable[int], predicate_uri: str, cap: int) -> str:
-    """One association hop over a *set* of input page_ids (set-in, set-out)."""
+def build_set_hop_query(
+    page_ids: Iterable[int], predicate_uri: str, cap: int, direction: str
+) -> str:
+    """One association hop over a *set* of input page_ids (set-in, set-out).
+
+    ``direction`` is honored, not just validated (FR-011 / R7 — never silently invert):
+    ``subject_to_object`` treats the inputs as subjects and returns their object partners;
+    ``object_to_subject`` treats the inputs as objects and returns the subjects pointing to them.
+    The result is always keyed ``partner_page_id`` (the far end of the hop).
+    """
+    if direction not in VALID_DIRECTIONS:
+        raise ValueError(f"invalid direction: {direction!r}")
     ids = ", ".join(str(int(p)) for p in sorted(set(page_ids)))
+    term = f"-[:predicate]->(:Term {{uri:'{predicate_uri}'}})"
+    if direction == "subject_to_object":
+        return (
+            "MATCH (p:Page)-[:trait|inferred_trait]->(t:Trait)"
+            f"{term} "
+            f"WHERE p.page_id IN [{ids}] "
+            "MATCH (t)-[:object_page]->(partner:Page) "
+            "RETURN DISTINCT partner.page_id AS partner_page_id "
+            f"LIMIT {int(cap)}"
+        )
+    # object_to_subject: inputs are the objects; return the subject pages whose trait points to them.
     return (
-        "MATCH (p:Page)-[:trait|inferred_trait]->(t:Trait)"
-        f"-[:predicate]->(:Term {{uri:'{predicate_uri}'}}) "
-        f"WHERE p.page_id IN [{ids}] "
-        "MATCH (t)-[:object_page]->(partner:Page) "
+        "MATCH (partner:Page)-[:trait|inferred_trait]->(t:Trait)"
+        f"{term} "
+        f"MATCH (t)-[:object_page]->(o:Page) WHERE o.page_id IN [{ids}] "
         "RETURN DISTINCT partner.page_id AS partner_page_id "
         f"LIMIT {int(cap)}"
     )
@@ -46,11 +66,15 @@ def build_n_hop_chain_query(start_page_id: int, hops: Sequence[tuple[str, str]],
         if direction not in VALID_DIRECTIONS:
             raise ValueError(f"invalid hop direction: {direction!r}")
         cur = f"p{i}"
-        parts.append(
-            f"MATCH ({prev})-[:trait|inferred_trait]->(t{i}:Trait)"
-            f"-[:predicate]->(:Term {{uri:'{uri}'}})"
-        )
-        parts.append(f"MATCH (t{i})-[:object_page]->({cur}:Page)")
+        term = f"-[:predicate]->(:Term {{uri:'{uri}'}})"
+        if direction == "subject_to_object":
+            # frontier is the subject; carry its object partners forward
+            parts.append(f"MATCH ({prev})-[:trait|inferred_trait]->(t{i}:Trait){term}")
+            parts.append(f"MATCH (t{i})-[:object_page]->({cur}:Page)")
+        else:
+            # object_to_subject: frontier is the object; carry the subjects pointing to it forward
+            parts.append(f"MATCH ({cur}:Page)-[:trait|inferred_trait]->(t{i}:Trait){term}")
+            parts.append(f"MATCH (t{i})-[:object_page]->({prev})")
         parts.append(f"WITH DISTINCT {cur}")
         prev = cur
     parts.append(

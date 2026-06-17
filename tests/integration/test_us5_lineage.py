@@ -8,6 +8,7 @@ from eol_genai_service.contract import AnswerRequest, ChosenSelection
 from eol_genai_service.fixtures import build_offline_deps
 from eol_genai_service.orchestration.pipeline import answer
 from eol_genai_service.shapes.lineage import build_lineage_query
+from support import offline_deps
 
 
 def test_sea_otter_ancestry_returns_ordered_parent_chain():
@@ -36,6 +37,14 @@ def test_lineage_question_about_homonym_asks_for_clarification():
     result = answer(AnswerRequest(question="what is the lineage of an otter?"), deps)
     assert result.outcome == "needs_clarification"
     assert result.candidates.kind == "taxon"
+
+
+def test_lineage_with_no_ancestors_is_no_records():
+    # A root taxon (or a page EOL has no parent chain for) → the lineage query returns no rows →
+    # no_records, not an empty "answer" (the untested empty-rows branch of _answer_lineage).
+    deps = offline_deps(lambda query, fmt: [])  # EOL returns no ancestor rows
+    result = answer(AnswerRequest(question="what is the ancestry of the sea otter?"), deps)
+    assert result.outcome == "no_records"
 
 
 def test_lineage_resubmit_with_chosen_taxon_answers():

@@ -4,10 +4,9 @@ Builds the real embedded catalog and measures how often the correct EOL URI is i
 labeled set of phrases. Prints the metrics (use `-s`) and asserts a regression bar.
 """
 
-import urllib.request
-
 import pytest
 
+from support import ollama_up
 from eol_genai_service.config import Settings, load_env
 from eol_genai_service.eval.labeled_predicates import LABELED
 from eol_genai_service.eval.recall import evaluate
@@ -23,16 +22,8 @@ load_env()
 _SETTINGS = Settings.from_env()
 
 
-def _ollama_up() -> bool:
-    try:
-        urllib.request.urlopen("http://localhost:11434/api/tags", timeout=2)
-        return True
-    except Exception:
-        return False
-
-
 pytestmark = pytest.mark.skipif(
-    not (_SETTINGS.eol_jwt and _ollama_up()), reason="needs EOL_JWT + Ollama"
+    not (_SETTINGS.eol_jwt and ollama_up()), reason="needs EOL_JWT + Ollama"
 )
 
 
