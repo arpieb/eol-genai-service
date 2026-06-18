@@ -15,7 +15,12 @@ dependencies = [
     "opentelemetry-sdk>=1.42.1",
     "pydantic>=2.13.4",
     "python-dotenv>=1.2.2",
+    "uvicorn>=0.49.0",
 ]
+
+[project.scripts]
+eol-genai-api = "eol_genai_service.api.app:serve"  # HTTP API (POST /v1/answer)
+eol-genai-mcp = "eol_genai_service.tools.server:main"  # MCP stdio server (read-only tool surface)
 
 [build-system]
 requires = ["uv_build>=0.11.17,<0.12"]

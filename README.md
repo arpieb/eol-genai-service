@@ -8,10 +8,10 @@ research, data model, contracts, and the project [constitution](.specify/memory/
 
 ## Status
 
-All eight user stories (US-1 through US-8) are implemented and run **end-to-end against offline
-fixtures** — no network, JWT, LLM, or embeddings required. Live integrations (real EOL endpoint,
-Mellea-constrained extractor, Voyage embeddings) sit behind protocol seams and are pending API
-keys (tasks T002/T003/T011/T014).
+All eight user stories (US-1 through US-8) are implemented, and the live stack is wired and
+validated against real EOL + a local Ollama: the success-criteria gates pass (SC-001 accuracy 100%
+on the canonical golden set; SC-006 warm p95 ≈ 0.6 s). With no `EOL_JWT`/Ollama the service runs the
+**offline fixture pipeline** (no network, JWT, LLM, or embeddings) — the default for tests/dev.
 
 | Capability | Story | Outcome |
 |------------|-------|---------|
@@ -22,7 +22,7 @@ keys (tasks T002/T003/T011/T014).
 | Lineage | US-5 | ordered ancestor chain |
 | Disambiguation | US-6 | `needs_clarification` (never a guess) |
 | No data | US-8 | explicit `no_records` |
-| Novel multi-hop | US-7 | composed via tool surface, or `out_of_capability` |
+| Novel multi-hop | US-7 | composed via the MCP tool surface, or `out_of_capability` |
 
 ## Tooling
 
@@ -32,8 +32,8 @@ keys (tasks T002/T003/T011/T014).
 ## Run
 
 ```bash
-uv sync                                          # provision .venv from pyproject + uv.lock
-uv run uvicorn eol_genai_service.api.app:app --reload   # serve POST /v1/answer (offline fixtures)
+uv sync                  # provision .venv from pyproject + uv.lock
+uv run eol-genai-api     # serve the HTTP API on 0.0.0.0:8000 (EOL_API_HOST/EOL_API_PORT to override)
 ```
 
 Ask a question:
@@ -41,42 +41,63 @@ Ask a question:
 ```bash
 curl -s localhost:8000/v1/answer -H 'content-type: application/json' \
   -d '{"question": "how heavy is a sea otter?"}'
-# → {"outcome":"answer","statements":[{"value":{"kind":"quantitative","amount":25.0,"units":"kg",...}}],...}
+# → {"outcome":"answer","statements":[{"value":{"kind":"quantitative","amount":...,"units":...}}],...}
 ```
 
-The endpoint always returns one of five outcomes: `answer`, `no_records`, `needs_clarification`,
+The endpoint always returns one of five outcomes — `answer`, `no_records`, `needs_clarification`,
 `upstream_unavailable`, `out_of_capability` (see
 [`contracts/client-contract.md`](specs/001-eol-trait-query/contracts/client-contract.md)).
+`GET /healthz` is a liveness probe.
+
+### MCP tool surface (US-7)
+
+The read-only tool surface the calling model uses to orchestrate novel multi-hop questions runs as
+an MCP **stdio** server:
+
+```bash
+uv run eol-genai-mcp     # exposes resolve_predicate/resolve_taxon/list_predicates/get_schema/
+                         # run_cypher/single_hop/n_hop_chain — read-only; every call validator-gated
+```
+
+### Docker
+
+```bash
+docker build -t eol-genai-service .
+docker run -p 8000:8000 --env-file .env eol-genai-service   # serves the API
+```
+
+## Configuration
+
+Copy `.env.example` to `.env` and set what you need (all optional — absent values fall back to the
+offline pipeline / local defaults):
+
+```bash
+EOL_JWT=...                       # shared admin token (request from the EOL maintainer); enables live EOL
+EOL_CYPHER_URL=https://eol.org/service/cypher
+EOL_EMBEDDINGS_BACKEND=ollama     # litellm provider prefix; ollama (local) | voyage | openai | …
+EOL_EMBEDDINGS_MODEL_ID=mxbai-embed-large
+EOL_SERVICE_MODEL_BACKEND=ollama  # mellea backend; ollama (local Granite) | anthropic | …
+EOL_SERVICE_MODEL_ID=granite4.1:3b
+```
+
+Embeddings route through **litellm** and generation through **mellea**, so the provider is a config
+choice — the service imports no provider SDK directly. The local default needs a running Ollama with
+`granite4.1:3b` and `mxbai-embed-large` pulled.
 
 ## Test, lint, format
 
 ```bash
-uv run pytest                  # full suite (offline)
+uv run pytest                  # full suite (offline; live tests skip without EOL_JWT + Ollama)
 uv run ruff check src tests    # lint
 uv run ruff format src tests   # format
 ```
 
-Success-criteria gates are enforced by the suite: validator hard gates (SC-002/SC-003), the
-SC-001 accuracy harness, the SC-004 ambiguity gate, SC-005 truncation, and the SC-006 latency
-check.
-
 ## Architecture (one paragraph)
 
 Two-tier with a single hard validator between everything and EOL. The **service** owns NL→intent
-extraction, term/taxon resolution (retrieval, not training), deterministic versioned query shapes,
-and the repair loop; the **calling model** orchestrates the rare novel long tail via a read-only,
-set-valued [tool surface](src/eol_genai_service/tools/surface.py). Every query — template or
-LLM-generated — reaches EOL only through the
+extraction (mellea), term/taxon resolution (retrieval over EOL's term tables, not training), and
+deterministic versioned query shapes; the **calling model** orchestrates the rare novel long tail
+via a read-only, set-valued [tool surface](src/eol_genai_service/tools/surface.py) exposed over MCP.
+Every query — template or LLM-composed — reaches EOL only through the
 [validator](src/eol_genai_service/validator/core.py) (`LIMIT` present, all URIs resolved,
 read-only). The query language and EOL schema never cross the client boundary.
-
-## Live integration (pending keys)
-
-```bash
-export EOL_JWT=...                # shared admin token (request from the EOL maintainer)
-export EOL_CYPHER_URL=https://eol.org/service/cypher
-# embeddings + service model selection via EOL_EMBEDDINGS_MODEL_ID / EOL_SERVICE_MODEL_ID
-```
-
-Wire an httpx-backed transport + the embedded term catalog and Mellea extractor at the
-composition root; the pipeline is unchanged.

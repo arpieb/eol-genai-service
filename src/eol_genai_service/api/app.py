@@ -50,3 +50,19 @@ def create_app(deps: PipelineDeps | None = None, tracer: Tracer | None = None) -
 # Production ASGI entrypoint (`uvicorn eol_genai_service.api.app:app`): live transport when
 # EOL_JWT is configured (via .env or the environment), else the offline fixture pipeline.
 app = create_app(build_deps())
+
+
+def serve() -> None:
+    """Console entrypoint (``eol-genai-api``): run the HTTP API with uvicorn.
+
+    Host/port come from ``EOL_API_HOST`` / ``EOL_API_PORT`` (default ``0.0.0.0:8000``).
+    """
+    import os
+
+    import uvicorn
+
+    uvicorn.run(
+        app,
+        host=os.getenv("EOL_API_HOST", "0.0.0.0"),
+        port=int(os.getenv("EOL_API_PORT", "8000")),
+    )
