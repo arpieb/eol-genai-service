@@ -147,6 +147,9 @@ def build_http_app(server: FastMCP, transport: str):
 def main() -> None:
     """Run the live MCP server (``uv run eol-genai-mcp``). stdio by default; set
     ``EOL_MCP_TRANSPORT=streamable-http`` to serve the ``/mcp`` endpoint for networked clients."""
+    from eol_genai_service.config import load_env
+
+    load_env()  # load .env first so the EOL_MCP_* serving knobs are visible, like the rest of config
     transport, host, port = transport_config()
     server = create_server(build_live_surface())
     server.settings.host = host

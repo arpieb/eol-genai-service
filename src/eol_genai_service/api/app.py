@@ -61,6 +61,9 @@ def serve() -> None:
 
     import uvicorn
 
+    from eol_genai_service.config import load_env
+
+    load_env()  # ensure .env serving knobs are loaded, not just relied on via import side effects
     uvicorn.run(
         app,
         host=os.getenv("EOL_API_HOST", "0.0.0.0"),
