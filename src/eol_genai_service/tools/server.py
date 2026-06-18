@@ -13,6 +13,8 @@ surface into :func:`create_server`.
 
 from __future__ import annotations
 
+import os
+
 from mcp.server.fastmcp import FastMCP
 
 from eol_genai_service.tools.surface import DEFAULT_SCHEMA, ToolSurface
@@ -104,9 +106,28 @@ def create_server(surface: ToolSurface) -> FastMCP:
     return mcp
 
 
+def transport_config() -> tuple[str, str, int]:
+    """Transport selection from the environment.
+
+    ``EOL_MCP_TRANSPORT`` ∈ ``stdio`` (default — local subprocess clients) | ``streamable-http``
+    (the modern HTTP transport; serves the standard MCP endpoint at ``/mcp``) | ``sse`` (legacy
+    HTTP). Host/port (HTTP transports only) come from ``EOL_MCP_HOST`` / ``EOL_MCP_PORT``.
+    """
+    return (
+        os.getenv("EOL_MCP_TRANSPORT", "stdio"),
+        os.getenv("EOL_MCP_HOST", "0.0.0.0"),
+        int(os.getenv("EOL_MCP_PORT", "8765")),
+    )
+
+
 def main() -> None:
-    """Run the live MCP server over stdio (``uv run python -m eol_genai_service.tools.server``)."""
-    create_server(build_live_surface()).run(transport="stdio")
+    """Run the live MCP server (``uv run eol-genai-mcp``). stdio by default; set
+    ``EOL_MCP_TRANSPORT=streamable-http`` to serve the ``/mcp`` endpoint for networked clients."""
+    transport, host, port = transport_config()
+    server = create_server(build_live_surface())
+    server.settings.host = host
+    server.settings.port = port
+    server.run(transport=transport)
 
 
 if __name__ == "__main__":

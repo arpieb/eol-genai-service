@@ -11,7 +11,7 @@ import json
 import pytest
 
 from eol_genai_service.fixtures import build_offline_tool_surface
-from eol_genai_service.tools.server import create_server
+from eol_genai_service.tools.server import create_server, transport_config
 from eol_genai_service.tools.surface import FORBIDDEN_METHODS
 
 _EXPECTED_TOOLS = {
@@ -70,6 +70,22 @@ def test_discovery_tools_return_catalog_and_schema():
     schema = _call(srv, "get_schema", {})
     assert "Page" in schema["node_types"]
     assert "object_term" in schema["value_slots"]
+
+
+def test_transport_defaults_to_stdio(monkeypatch):
+    monkeypatch.delenv("EOL_MCP_TRANSPORT", raising=False)
+    transport, _host, _port = transport_config()
+    assert transport == "stdio"  # local subprocess clients by default
+
+
+def test_transport_config_reads_env_for_networked_http(monkeypatch):
+    # Networked MCP clients need the HTTP transport (serves the /mcp endpoint), selected via env.
+    monkeypatch.setenv("EOL_MCP_TRANSPORT", "streamable-http")
+    monkeypatch.setenv("EOL_MCP_HOST", "127.0.0.1")
+    monkeypatch.setenv("EOL_MCP_PORT", "9111")
+    transport, host, port = transport_config()
+    assert transport == "streamable-http"
+    assert (host, port) == ("127.0.0.1", 9111)
 
 
 def test_run_cypher_stays_validator_gated_through_mcp():
