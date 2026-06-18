@@ -19,6 +19,7 @@ from eol_genai_service.contract import Taxon, TaxonCandidate
 from eol_genai_service.upstream.client import UpstreamUnavailable
 
 SEARCH_URL = "https://eol.org/api/search/1.0.json"
+PAGES_URL = "https://eol.org/api/pages/1.0/{page_id}.json"
 
 
 class SearchApiTaxonResolver:
@@ -27,6 +28,7 @@ class SearchApiTaxonResolver:
     def __init__(self, client: httpx.Client | None = None, k: int = 5) -> None:
         self._client = client or httpx.Client(timeout=20.0)
         self._k = k
+        self._name_cache: dict[int, str] = {}  # page_id → scientific name (respect upstream, VII)
 
     def resolve(self, name: str) -> list[TaxonCandidate]:
         # The search API is an upstream dependency: map its transport / rate-limit (429) / 5xx
@@ -53,6 +55,21 @@ class SearchApiTaxonResolver:
         return candidates
 
     def by_page_id(self, page_id: int) -> Taxon | None:
-        # The search API has no reverse lookup; the chosen-resubmit (FR-014) only needs the page_id
-        # for the query. Name enrichment via the EOL pages API is a follow-up.
-        return Taxon(page_id=page_id, scientific_name=f"page:{page_id}")
+        """Resolve a chosen page_id (FR-014 resubmit) to a Taxon, enriching the scientific name from
+        EOL's pages API. Enrichment is **best-effort**: the page_id is what the query needs, so a
+        pages-API failure degrades to a ``page:<id>`` placeholder rather than failing the request."""
+        return Taxon(page_id=page_id, scientific_name=self._scientific_name(page_id))
+
+    def _scientific_name(self, page_id: int) -> str:
+        if page_id in self._name_cache:
+            return self._name_cache[page_id]
+        name = f"page:{page_id}"  # fallback; never let a cosmetic lookup fail the resubmit
+        try:
+            resp = self._client.get(PAGES_URL.format(page_id=page_id), params={"details": "false"})
+            resp.raise_for_status()
+            concept = resp.json().get("taxonConcept") or {}
+            name = concept.get("scientificName") or name
+        except Exception:  # noqa: BLE001 - enrichment is best-effort; the page_id still answers
+            pass
+        self._name_cache[page_id] = name
+        return name

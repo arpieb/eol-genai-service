@@ -46,10 +46,42 @@ def test_ambiguous_common_name_scores_below_confidence():
     assert {c.page_id for c in cands} == {55560047, 51950753}
 
 
-def test_by_page_id_returns_taxon_for_resubmit():
-    taxon = _resolver().by_page_id(328598)
-    assert taxon is not None
+def _pages_resolver(handler) -> SearchApiTaxonResolver:
+    return SearchApiTaxonResolver(client=httpx.Client(transport=httpx.MockTransport(handler)))
+
+
+def test_by_page_id_enriches_scientific_name_from_pages_api():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "/api/pages/" in request.url.path  # by_page_id hits the pages API, not search
+        return httpx.Response(200, json={"taxonConcept": {"scientificName": "Enhydra lutris"}})
+
+    taxon = _pages_resolver(handler).by_page_id(46559130)
+    assert taxon.page_id == 46559130
+    assert taxon.scientific_name == "Enhydra lutris"
+
+
+def test_by_page_id_falls_back_to_placeholder_on_pages_api_error():
+    # Enrichment is best-effort: a pages-API failure must NOT fail the resubmit (the page_id, which
+    # the query needs, is still valid) — the name degrades to a placeholder.
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503)
+
+    taxon = _pages_resolver(handler).by_page_id(328598)
     assert taxon.page_id == 328598
+    assert taxon.scientific_name == "page:328598"
+
+
+def test_by_page_id_caches_the_lookup():
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        return httpx.Response(200, json={"taxonConcept": {"scientificName": "X"}})
+
+    resolver = _pages_resolver(handler)
+    resolver.by_page_id(1)
+    resolver.by_page_id(1)
+    assert calls["n"] == 1  # second lookup served from cache (Principle VII — respect the upstream)
 
 
 def test_rate_limit_maps_to_upstream_unavailable():
