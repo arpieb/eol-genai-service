@@ -10,8 +10,10 @@ import json
 
 import pytest
 
+from fastapi.testclient import TestClient
+
 from eol_genai_service.fixtures import build_offline_tool_surface
-from eol_genai_service.tools.server import create_server
+from eol_genai_service.tools.server import build_http_app, create_server, transport_config
 from eol_genai_service.tools.surface import FORBIDDEN_METHODS
 
 _EXPECTED_TOOLS = {
@@ -70,6 +72,36 @@ def test_discovery_tools_return_catalog_and_schema():
     schema = _call(srv, "get_schema", {})
     assert "Page" in schema["node_types"]
     assert "object_term" in schema["value_slots"]
+
+
+def test_transport_defaults_to_stdio(monkeypatch):
+    monkeypatch.delenv("EOL_MCP_TRANSPORT", raising=False)
+    transport, _host, _port = transport_config()
+    assert transport == "stdio"  # local subprocess clients by default
+
+
+def test_transport_config_reads_env_for_networked_http(monkeypatch):
+    # Networked MCP clients need the HTTP transport (serves the /mcp endpoint), selected via env.
+    monkeypatch.setenv("EOL_MCP_TRANSPORT", "streamable-http")
+    monkeypatch.setenv("EOL_MCP_HOST", "127.0.0.1")
+    monkeypatch.setenv("EOL_MCP_PORT", "9111")
+    transport, host, port = transport_config()
+    assert transport == "streamable-http"
+    assert (host, port) == ("127.0.0.1", 9111)
+
+
+def test_streamable_http_handles_cors_preflight():
+    # A browser MCP client sends an OPTIONS preflight before POSTing to /mcp. Without CORS that was
+    # rejected with 405; the wrapped app must answer the preflight (200) and allow POST.
+    app = build_http_app(create_server(build_offline_tool_surface()), "streamable-http")
+    client = TestClient(app)
+    resp = client.options(
+        "/mcp",
+        headers={"Origin": "http://example.com", "Access-Control-Request-Method": "POST"},
+    )
+    assert resp.status_code == 200  # was 405
+    assert resp.headers["access-control-allow-origin"] in ("*", "http://example.com")
+    assert "POST" in resp.headers.get("access-control-allow-methods", "")
 
 
 def test_run_cypher_stays_validator_gated_through_mcp():

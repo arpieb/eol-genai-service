@@ -51,13 +51,20 @@ The endpoint always returns one of five outcomes — `answer`, `no_records`, `ne
 
 ### MCP tool surface (US-7)
 
-The read-only tool surface the calling model uses to orchestrate novel multi-hop questions runs as
-an MCP **stdio** server:
+The read-only tool surface the calling model uses to orchestrate novel multi-hop questions is an MCP
+server exposing `resolve_predicate`/`resolve_taxon`/`list_predicates`/`get_schema`/`run_cypher`/
+`single_hop`/`n_hop_chain` (read-only; every call validator-gated). The transport is selectable via
+`EOL_MCP_TRANSPORT`:
 
 ```bash
-uv run eol-genai-mcp     # exposes resolve_predicate/resolve_taxon/list_predicates/get_schema/
-                         # run_cypher/single_hop/n_hop_chain — read-only; every call validator-gated
+uv run eol-genai-mcp                                  # stdio (default) — local subprocess clients
+EOL_MCP_TRANSPORT=streamable-http uv run eol-genai-mcp  # HTTP — serves the standard MCP endpoint at
+                                                      # http://EOL_MCP_HOST:EOL_MCP_PORT/mcp (default :8765)
 ```
+
+Use **stdio** for local clients that spawn the process (e.g. an MCP `command` config); use
+**streamable-http** for networked clients that connect to the `/mcp` endpoint (`sse` is the legacy
+HTTP transport).
 
 ### Docker
 

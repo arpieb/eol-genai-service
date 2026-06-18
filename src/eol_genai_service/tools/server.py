@@ -13,6 +13,8 @@ surface into :func:`create_server`.
 
 from __future__ import annotations
 
+import os
+
 from mcp.server.fastmcp import FastMCP
 
 from eol_genai_service.tools.surface import DEFAULT_SCHEMA, ToolSurface
@@ -104,9 +106,60 @@ def create_server(surface: ToolSurface) -> FastMCP:
     return mcp
 
 
+def transport_config() -> tuple[str, str, int]:
+    """Transport selection from the environment.
+
+    ``EOL_MCP_TRANSPORT`` ∈ ``stdio`` (default — local subprocess clients) | ``streamable-http``
+    (the modern HTTP transport; serves the standard MCP endpoint at ``/mcp``) | ``sse`` (legacy
+    HTTP). Host/port (HTTP transports only) come from ``EOL_MCP_HOST`` / ``EOL_MCP_PORT``.
+    """
+    return (
+        os.getenv("EOL_MCP_TRANSPORT", "stdio"),
+        os.getenv("EOL_MCP_HOST", "0.0.0.0"),
+        int(os.getenv("EOL_MCP_PORT", "8765")),
+    )
+
+
+def build_http_app(server: FastMCP, transport: str):
+    """The Starlette app for an HTTP MCP transport, wrapped in CORS so **browser-based** clients
+    work: the streamable-http protocol round-trips a ``Mcp-Session-Id`` header, and browsers send a
+    CORS preflight (``OPTIONS``) first — without CORS the preflight is rejected (405) and the
+    session header isn't readable. ``EOL_MCP_PATH`` overrides the endpoint path (default ``/mcp``);
+    ``EOL_MCP_CORS_ORIGINS`` is a comma-separated allowlist (default ``*``)."""
+    from starlette.middleware.cors import CORSMiddleware
+
+    path = os.getenv("EOL_MCP_PATH")
+    if path:
+        server.settings.streamable_http_path = path
+        server.settings.sse_path = path
+    app = server.streamable_http_app() if transport == "streamable-http" else server.sse_app()
+    origins = [o.strip() for o in os.getenv("EOL_MCP_CORS_ORIGINS", "*").split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+        expose_headers=["Mcp-Session-Id"],  # the streamable-http session id the client must read
+    )
+    return app
+
+
 def main() -> None:
-    """Run the live MCP server over stdio (``uv run python -m eol_genai_service.tools.server``)."""
-    create_server(build_live_surface()).run(transport="stdio")
+    """Run the live MCP server (``uv run eol-genai-mcp``). stdio by default; set
+    ``EOL_MCP_TRANSPORT=streamable-http`` to serve the ``/mcp`` endpoint for networked clients."""
+    from eol_genai_service.config import load_env
+
+    load_env()  # load .env first so the EOL_MCP_* serving knobs are visible, like the rest of config
+    transport, host, port = transport_config()
+    server = create_server(build_live_surface())
+    server.settings.host = host
+    server.settings.port = port
+    if transport == "stdio":
+        server.run(transport="stdio")
+        return
+    import uvicorn
+
+    uvicorn.run(build_http_app(server, transport), host=host, port=port)
 
 
 if __name__ == "__main__":
