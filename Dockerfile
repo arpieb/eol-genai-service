@@ -22,14 +22,19 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-# Then the package source, and install the project (registers the console scripts).
-COPY src ./src
-RUN uv sync --frozen --no-dev
-
 # Pre-download the embedding model at build time so the container needs NO network for embeddings
 # at startup and cold starts are fast (the ONNX weights bake into this image, under the same cache
 # dir the app reads at runtime). Requires network during build only.
-RUN uv run python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='mixedbread-ai/mxbai-embed-large-v1', cache_dir='/app/.cache/fastembed')"
+#
+# Placed BEFORE the source copy on purpose: this 1.3 GB layer depends only on the pinned deps above,
+# never on src, so a code change must not invalidate (and re-download) it. --no-sync runs in the
+# already-synced env without trying to install the project, which isn't copied yet.
+RUN uv run --no-sync python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='mixedbread-ai/mxbai-embed-large-v1', cache_dir='/app/.cache/fastembed')"
+
+# Then the package source, and install the project (registers the console scripts). This is the only
+# layer a code change busts — the deps and the baked model above stay cached.
+COPY src ./src
+RUN uv sync --frozen --no-dev
 
 # Drop bundled unit-test suites shipped inside third-party wheels (numpy, sympy, …). These are never
 # imported at runtime; removing them trims the venv without touching any importable module.
