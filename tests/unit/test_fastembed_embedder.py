@@ -88,6 +88,8 @@ def test_build_embedder_cache_dir_from_env(monkeypatch):
 
 
 def test_build_embedder_non_local_still_uses_litellm():
-    emb = build_embedder(Settings(embeddings_backend="voyage", embeddings_model_id="voyage-3-large"))
+    emb = build_embedder(
+        Settings(embeddings_backend="voyage", embeddings_model_id="voyage-3-large")
+    )
     assert isinstance(emb, LiteLLMEmbedder)
     assert emb.model == "voyage/voyage-3-large"

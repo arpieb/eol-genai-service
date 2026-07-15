@@ -94,7 +94,9 @@ class FastEmbedEmbedder:
     weights (bake them into the image at build time to avoid a first-run download).
     """
 
-    def __init__(self, model_id: str, *, query_prefix: str = "", cache_dir: str | None = None) -> None:
+    def __init__(
+        self, model_id: str, *, query_prefix: str = "", cache_dir: str | None = None
+    ) -> None:
         self.model_id = model_id
         self.query_prefix = query_prefix
         self.cache_dir = cache_dir
