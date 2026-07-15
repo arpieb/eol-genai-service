@@ -27,11 +27,29 @@ _INSTRUCTIONS = (
 )
 
 
+# The MCP server defaults to the in-process (fastembed) embedding backend so it is self-contained:
+# no Ollama, no hosted embedding API. Applied as an env default in build_live_surface, so an explicit
+# EOL_EMBEDDINGS_BACKEND (real env or .env) still wins. Model kept as mxbai for score/gate parity.
+_DEFAULT_EMBEDDINGS_BACKEND = "local"
+_DEFAULT_EMBEDDINGS_MODEL_ID = "mixedbread-ai/mxbai-embed-large-v1"
+
+
 def build_live_surface() -> ToolSurface:
-    """Assemble the live tool surface at the composition root (needs EOL_JWT + the cached index)."""
+    """Assemble the live tool surface at the composition root (needs EOL_JWT + the cached index).
+
+    Defaults embeddings to the in-process (fastembed) backend so the MCP server needs no Ollama or
+    hosted embedding API; set ``EOL_EMBEDDINGS_BACKEND`` (env or .env) to override.
+    """
+    from eol_genai_service.config import Settings, load_env
     from eol_genai_service.factory import build_deps
 
-    deps = build_deps()
+    # load .env first so it can override the MCP default below; a real env var still wins over both
+    # (load_dotenv uses override=False, and setdefault only fills a still-absent value).
+    load_env()
+    os.environ.setdefault("EOL_EMBEDDINGS_BACKEND", _DEFAULT_EMBEDDINGS_BACKEND)
+    os.environ.setdefault("EOL_EMBEDDINGS_MODEL_ID", _DEFAULT_EMBEDDINGS_MODEL_ID)
+
+    deps = build_deps(Settings.from_env())
     return ToolSurface(deps, deps.predicate_resolver.catalog(), DEFAULT_SCHEMA)
 
 

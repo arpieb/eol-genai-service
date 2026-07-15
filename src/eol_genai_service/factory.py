@@ -13,13 +13,19 @@ after a model or catalog change.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from eol_genai_service.config import Settings, load_env
 from eol_genai_service.extraction.mellea_extractor import MelleaExtractor
 from eol_genai_service.fixtures import build_offline_deps
 from eol_genai_service.orchestration.pipeline import PipelineDeps
-from eol_genai_service.resolution.embeddings import QUERY_PREFIX, Embedder, LiteLLMEmbedder
+from eol_genai_service.resolution.embeddings import (
+    QUERY_PREFIX,
+    Embedder,
+    FastEmbedEmbedder,
+    LiteLLMEmbedder,
+)
 from eol_genai_service.resolution.predicate_index import (
     EmbeddingPredicateResolver,
     PredicateEmbeddingIndex,
@@ -35,6 +41,10 @@ _INDEX_DIR = Path(".cache/predicate_index")
 # exact-match defaults. Applied only when the operator hasn't overridden them via env.
 _EMBEDDING_CONFIDENCE = 0.5
 _EMBEDDING_MARGIN = 0.05
+
+# Backend names that mean "run the embedding model in-process" (fastembed / ONNX, CPU) — no
+# Ollama, no hosted API. This is the MCP server's default (see tools.server.build_live_surface).
+_LOCAL_EMBEDDING_BACKENDS = frozenset({"local", "fastembed"})
 
 
 def build_deps(settings: Settings | None = None) -> PipelineDeps:
@@ -58,15 +68,21 @@ def build_deps(settings: Settings | None = None) -> PipelineDeps:
 
 
 def build_embedder(settings: Settings) -> Embedder:
-    """The configured embedder: ``<backend>/<model_id>`` as a litellm model string.
+    """The configured embedder, selected by ``embeddings_backend``.
 
-    The asymmetric query prefix is model-specific (mxbai needs it; most others don't), so it's
-    derived here and lives inside the embedder. Catalog and query embeddings share this one builder
-    so they always use the same model (the index-consistency invariant).
+    ``local``/``fastembed`` → an in-process fastembed model (no server, no network, no key); any
+    other value → litellm with a ``<backend>/<model_id>`` model string. The asymmetric query prefix
+    is model-specific (mxbai needs it; most others don't), so it's derived here and lives inside the
+    embedder. Catalog and query embeddings share this one builder so they always use the same model
+    (the index-consistency invariant).
     """
-    model = f"{settings.embeddings_backend}/{settings.embeddings_model_id}"
-    query_prefix = QUERY_PREFIX if "mxbai" in settings.embeddings_model_id.lower() else ""
-    return LiteLLMEmbedder(model, query_prefix=query_prefix)
+    model_id = settings.embeddings_model_id
+    query_prefix = QUERY_PREFIX if "mxbai" in model_id.lower() else ""
+    if settings.embeddings_backend in _LOCAL_EMBEDDING_BACKENDS:
+        # Pin the weights cache so a build-time pre-download is reused at runtime (offline start).
+        cache_dir = os.getenv("EOL_EMBEDDINGS_CACHE_DIR") or None
+        return FastEmbedEmbedder(model_id, query_prefix=query_prefix, cache_dir=cache_dir)
+    return LiteLLMEmbedder(f"{settings.embeddings_backend}/{model_id}", query_prefix=query_prefix)
 
 
 def _build_or_load_predicate_resolver(transport, embedder) -> EmbeddingPredicateResolver:

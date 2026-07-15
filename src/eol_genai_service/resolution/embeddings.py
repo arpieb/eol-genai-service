@@ -77,3 +77,53 @@ class LiteLLMEmbedder:
 
     def embed_query(self, text: str) -> np.ndarray:
         return self._embed([self.query_prefix + text])[0]
+
+
+class FastEmbedEmbedder:
+    """In-process embedder via fastembed (ONNX Runtime, CPU) — no server, no network, no API key.
+
+    Runs the embedding model *inside this process*, so a deployment (e.g. the MCP container) is
+    self-contained: no Ollama and no hosted embedding API. Same :class:`Embedder` contract as
+    :class:`LiteLLMEmbedder` — documents embedded plain, queries with ``query_prefix``, vectors
+    L2-normalized so cosine similarity is a plain dot product — so it drops into the resolver
+    unchanged and keeps score parity with the tuned confidence gates (use the same model,
+    ``mixedbread-ai/mxbai-embed-large-v1``).
+
+    The model (ONNX weights) is loaded lazily on first use, so constructing this is cheap and no
+    weights are needed until an ``embed`` call. ``cache_dir`` pins where fastembed stores/loads the
+    weights (bake them into the image at build time to avoid a first-run download).
+    """
+
+    def __init__(
+        self, model_id: str, *, query_prefix: str = "", cache_dir: str | None = None
+    ) -> None:
+        self.model_id = model_id
+        self.query_prefix = query_prefix
+        self.cache_dir = cache_dir
+        self._model = None  # lazy — the ONNX model is loaded on first embed()
+
+    def _ensure_model(self):
+        if self._model is None:
+            # Imported lazily so fastembed is only required when the local backend is actually used.
+            from fastembed import TextEmbedding
+
+            self._model = TextEmbedding(model_name=self.model_id, cache_dir=self.cache_dir)
+        return self._model
+
+    def _embed(self, inputs: list[str]) -> np.ndarray:
+        model = self._ensure_model()
+        try:
+            # fastembed yields one vector per input, in order.
+            vectors = list(model.embed(inputs))
+        except Exception as exc:  # noqa: BLE001 - any local-model failure is "unavailable"
+            # Match the LiteLLMEmbedder convention: map a model/runtime failure to the shared
+            # UpstreamUnavailable signal so predicate resolution surfaces upstream_unavailable
+            # rather than crashing (Principle II parity across embedding backends).
+            raise UpstreamUnavailable(f"embedding backend unavailable: {exc}") from exc
+        return l2_normalize(np.array(vectors, dtype="float32"))
+
+    def embed_documents(self, texts: list[str]) -> np.ndarray:
+        return self._embed(texts)
+
+    def embed_query(self, text: str) -> np.ndarray:
+        return self._embed([self.query_prefix + text])[0]
