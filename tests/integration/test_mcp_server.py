@@ -12,9 +12,10 @@ import pytest
 
 from fastapi.testclient import TestClient
 
-from eol_genai_service.fixtures import build_offline_tool_surface
+from eol_genai_service.contract import Predicate
+from eol_genai_service.fixtures import build_offline_deps, build_offline_tool_surface
 from eol_genai_service.tools.server import build_http_app, create_server, transport_config
-from eol_genai_service.tools.surface import FORBIDDEN_METHODS
+from eol_genai_service.tools.surface import DEFAULT_SCHEMA, FORBIDDEN_METHODS, ToolSurface
 
 _EXPECTED_TOOLS = {
     "resolve_predicate",
@@ -72,6 +73,20 @@ def test_discovery_tools_return_catalog_and_schema():
     schema = _call(srv, "get_schema", {})
     assert "Page" in schema["node_types"]
     assert "object_term" in schema["value_slots"]
+
+
+def test_live_surface_wiring_builds_catalog_from_the_resolver():
+    # Reproduces the composition root: build_live_surface() does
+    #   ToolSurface(deps, deps.predicate_resolver.catalog(), DEFAULT_SCHEMA)
+    # Without EOL_JWT build_deps returns offline deps (CatalogPredicateResolver), so its catalog()
+    # must exist — this path (not build_offline_tool_surface's inline list) is what the container runs.
+    deps = build_offline_deps()
+    catalog = deps.predicate_resolver.catalog()  # regressed here: AttributeError, no 'catalog'
+    assert catalog and all(isinstance(p, Predicate) for p in catalog)
+
+    surface = ToolSurface(deps, catalog, DEFAULT_SCHEMA)
+    names = {p.name for p in surface.list_predicates()}
+    assert {"body mass", "habitat"} <= names
 
 
 def test_transport_defaults_to_stdio(monkeypatch):

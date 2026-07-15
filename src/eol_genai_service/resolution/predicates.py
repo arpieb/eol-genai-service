@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from eol_genai_service.contract import PredicateCandidate
+from eol_genai_service.contract import Predicate, PredicateCandidate
 
 
 @dataclass(frozen=True)
@@ -26,6 +26,15 @@ class PredicateTerm:
 
 class PredicateResolver(Protocol):
     def resolve(self, text: str) -> list[PredicateCandidate]: ...
+
+    def catalog(self) -> list[Predicate]:
+        """The full controlled predicate catalog (backs the ``list_predicates`` discovery tool).
+
+        Part of the protocol so every resolver the composition root (``build_live_surface``) may hand
+        to :class:`~eol_genai_service.tools.surface.ToolSurface` can supply the catalog — offline
+        (:class:`CatalogPredicateResolver`) or embedded (``EmbeddingPredicateResolver``) alike.
+        """
+        ...
 
 
 class CatalogPredicateResolver:
@@ -45,6 +54,10 @@ class CatalogPredicateResolver:
                 )
         scored.sort(key=lambda c: c.score, reverse=True)
         return scored
+
+    def catalog(self) -> list[Predicate]:
+        """The full controlled predicate catalog, as contract ``Predicate``s (drops alias forms)."""
+        return [Predicate(uri=t.uri, name=t.name, type=t.type) for t in self._catalog]
 
 
 def _match_score(needle: str, forms: tuple[str, ...]) -> float:
