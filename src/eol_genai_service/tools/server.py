@@ -55,7 +55,7 @@ def build_live_surface() -> ToolSurface:
 
 def create_server(surface: ToolSurface) -> FastMCP:
     """Register the read-only tool surface as MCP tools. ``surface`` is injected (live or offline)."""
-    mcp = FastMCP("eol-genai-service", instructions=_INSTRUCTIONS)
+    mcp = FastMCP("eol-mcp-service", host="0.0.0.0", instructions=_INSTRUCTIONS)
 
     @mcp.tool(
         description="Resolve an attribute phrase to ranked ontology predicate candidates "
