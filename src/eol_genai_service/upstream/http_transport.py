@@ -52,7 +52,9 @@ class HttpEolTransport:
             params={"query": query, "format": fmt},
             headers={"Authorization": f"JWT {self._jwt}"},
         )
-        if resp.is_error:  # non-2xx: surface status + body so opaque failures (e.g. 403) are debuggable
+        if (
+            resp.is_error
+        ):  # non-2xx: surface status + body so opaque failures (e.g. 403) are debuggable
             body = (resp.text or "")[:_MAX_ERROR_BODY_CHARS]
             raise UpstreamHttpError(resp.status_code, resp.reason_phrase, body)
         return parse_neo4j_rows(resp.json())
