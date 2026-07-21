@@ -76,6 +76,29 @@ def test_multiple_violations_are_all_reported():
     assert {"MISSING_LIMIT", "UNRESOLVED_URI", "NOT_READ_ONLY"} <= codes
 
 
+# --- ORDER BY (EOL's Cypher endpoint 403s on it) ----------------------------------------------
+
+
+def test_order_by_is_rejected():
+    q = "MATCH (p:Page) RETURN p.canonical AS name ORDER BY name LIMIT 10"
+    assert "UNSUPPORTED_ORDER_BY" in _codes(q)
+
+
+def test_order_by_is_case_insensitive_and_whitespace_tolerant():
+    q = "MATCH (p:Page) RETURN p LimiT 5 oRdEr\n  bY p.canonical"
+    assert "UNSUPPORTED_ORDER_BY" in _codes(q)
+
+
+def test_order_by_inside_string_literal_is_not_a_false_positive():
+    q = "MATCH (t:Term {name:'order by rank'}) RETURN t LIMIT 5"
+    assert "UNSUPPORTED_ORDER_BY" not in _codes(q)
+
+
+def test_query_without_order_by_passes():
+    q = "MATCH (p:Page) RETURN p.canonical AS name LIMIT 10"
+    assert "UNSUPPORTED_ORDER_BY" not in _codes(q)
+
+
 # --- full EOL URIs (EOL stores full URIs, not the short form) ---------------------------------
 
 _BODY_MASS = "http://purl.obolibrary.org/obo/VT_0001259"

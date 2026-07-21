@@ -1,12 +1,15 @@
 """The single validator (T009) — no bypass (Constitution Principle II).
 
-One entry point, :func:`validate`, asserts three things about every query before it may reach
+One entry point, :func:`validate`, asserts four things about every query before it may reach
 EOL:
 
-1. ``MISSING_LIMIT``   — an explicit ``LIMIT <n>`` clause is present.
+1. ``MISSING_LIMIT``   — an explicit ``LIMIT <n>`` clause is present (required by EOL).
 2. ``UNRESOLVED_URI``  — every ontology-URI literal in the query is a member of the resolved
    set (no model-invented URIs). Comparison is **case-sensitive**.
 3. ``NOT_READ_ONLY``   — the query contains no write clause.
+4. ``UNSUPPORTED_ORDER_BY`` — the query contains no ``ORDER BY`` clause. EOL's Cypher gateway
+   rejects ``ORDER BY`` with an opaque HTTP 403; we reject it here with an actionable message so
+   the caller sorts client-side instead of guessing at the upstream failure.
 
 Backs SC-002 (zero invented URIs) and SC-003 (zero mutations). See
 contracts/validator.md. Server-side mutation rejection by EOL is defense-in-depth, not a
@@ -19,10 +22,15 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
-ViolationCode = str  # one of: MISSING_LIMIT, UNRESOLVED_URI, NOT_READ_ONLY
+ViolationCode = str  # one of: MISSING_LIMIT, UNRESOLVED_URI, NOT_READ_ONLY, UNSUPPORTED_ORDER_BY
 
 # An explicit numeric LIMIT clause. Cypher keywords are case-insensitive.
 _LIMIT_RE = re.compile(r"\blimit\b\s+\d+", re.IGNORECASE)
+
+# An ORDER BY clause. EOL's Cypher endpoint 403s on ORDER BY, so it is rejected here. Any run of
+# whitespace may separate the keywords; matched on the string-stripped query so an 'order by'
+# inside a quoted value is not a false positive.
+_ORDER_BY_RE = re.compile(r"\border\s+by\b", re.IGNORECASE)
 
 # Ontology URI literals. EOL stores FULL URIs (http://purl.obolibrary.org/obo/VT_0001259,
 # http://eol.org/schema/terms/ExtinctionStatus); the offline fixtures use the short form
@@ -76,6 +84,16 @@ def validate(query: str, resolved_uris: Iterable[str]) -> Verdict:
     # 1. LIMIT present
     if not _LIMIT_RE.search(scannable):
         violations.append(Violation("MISSING_LIMIT", "no explicit LIMIT <n> clause"))
+
+    # 1b. No ORDER BY (EOL's Cypher gateway rejects it with an opaque HTTP 403)
+    if _ORDER_BY_RE.search(scannable):
+        violations.append(
+            Violation(
+                "UNSUPPORTED_ORDER_BY",
+                "ORDER BY is rejected by EOL's Cypher endpoint (HTTP 403); "
+                "remove it and sort the rows client-side",
+            )
+        )
 
     # 2. All ontology URIs resolved (scan the ORIGINAL query — URIs often live in string values)
     for uri in _URI_RE.findall(query):
