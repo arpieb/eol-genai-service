@@ -6,8 +6,10 @@ JSON into row dicts keyed by the RETURN aliases — the shape the mappers expect
 Principle I; the neo4j envelope never escapes this module).
 
 Verified against the live endpoint: auth header `JWT <token>`, response
-``{"columns": ["page_id"], "data": [[58245907]]}``. The transport raises on timeout/HTTP error;
-``EolCypherClient`` wraps that into ``UpstreamUnavailable`` (FR-013) with bounded retry.
+``{"columns": ["page_id"], "data": [[58245907]]}``. On a non-2xx response the transport raises
+:class:`UpstreamHttpError` carrying the status + response body (so failures like EOL's 403 stay
+debuggable); ``EolCypherClient`` wraps that into ``UpstreamUnavailable`` (FR-013), failing fast on
+4xx and applying bounded retry on 5xx/transport errors.
 """
 
 from __future__ import annotations
@@ -17,6 +19,11 @@ from collections.abc import Sequence
 import httpx
 
 from eol_genai_service.config import Settings
+from eol_genai_service.upstream.client import UpstreamHttpError
+
+# EOL's error bodies are short (a line or two); cap what we surface so a stray HTML page can't
+# flood logs or the caller's context.
+_MAX_ERROR_BODY_CHARS = 500
 
 
 def parse_neo4j_rows(payload: dict) -> list[dict[str, object]]:
@@ -45,5 +52,9 @@ class HttpEolTransport:
             params={"query": query, "format": fmt},
             headers={"Authorization": f"JWT {self._jwt}"},
         )
-        resp.raise_for_status()  # non-2xx -> HTTPStatusError -> UpstreamUnavailable upstream
+        if (
+            resp.is_error
+        ):  # non-2xx: surface status + body so opaque failures (e.g. 403) are debuggable
+            body = (resp.text or "")[:_MAX_ERROR_BODY_CHARS]
+            raise UpstreamHttpError(resp.status_code, resp.reason_phrase, body)
         return parse_neo4j_rows(resp.json())
