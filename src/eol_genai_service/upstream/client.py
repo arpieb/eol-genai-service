@@ -28,6 +28,31 @@ class UpstreamUnavailable(Exception):
     """
 
 
+class UpstreamHttpError(Exception):
+    """EOL returned a non-2xx HTTP response.
+
+    Carries the status code and (truncated) response body so opaque upstream failures stay
+    debuggable — e.g. the HTTP 403 EOL returns for a rejected ``ORDER BY``. The transport raises
+    this instead of a bare ``httpx.HTTPStatusError`` (whose message omits the body); the client
+    surfaces the text through :class:`UpstreamUnavailable`.
+    """
+
+    def __init__(self, status_code: int, reason: str, body: str = "") -> None:
+        self.status_code = status_code
+        self.reason = reason
+        self.body = body
+        message = f"EOL returned HTTP {status_code} {reason}".rstrip()
+        detail = body.strip()
+        if detail:
+            message += f": {detail}"
+        super().__init__(message)
+
+    @property
+    def is_client_error(self) -> bool:
+        """4xx — a deterministic rejection (auth, forbidden, bad query). Retrying won't help."""
+        return 400 <= self.status_code < 500
+
+
 @dataclass(frozen=True)
 class UpstreamResult:
     """Rows returned by EOL plus whether the deliberate cap truncated them (SC-005)."""
@@ -59,6 +84,14 @@ class EolCypherClient:
         for _ in range(attempts):
             try:
                 rows = self._transport(query, self._settings.eol_format)
+            except UpstreamHttpError as exc:
+                # 4xx is deterministic (auth/forbidden/bad query) — a retry fails identically, so
+                # fail fast rather than hammering EOL. The message carries the status + body so the
+                # opaque failure (e.g. a 403) is debuggable.
+                if exc.is_client_error:
+                    raise UpstreamUnavailable(str(exc)) from exc
+                last_exc = exc  # 5xx may be transient — fall through to bounded retry
+                continue
             except Exception as exc:  # noqa: BLE001 - any transport failure is "unavailable"
                 last_exc = exc
                 continue  # bounded retry; backoff is applied by the transport layer
