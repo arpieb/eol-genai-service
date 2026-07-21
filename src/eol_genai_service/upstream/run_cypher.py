@@ -19,8 +19,11 @@ class ValidatorRejection(Exception):
 
     def __init__(self, verdict: Verdict) -> None:
         self.verdict = verdict
-        codes = ", ".join(v.code for v in verdict.violations)
-        super().__init__(f"query rejected by validator: {codes}")
+        # Include each violation's detail (not just its code) so the calling model gets an
+        # actionable message — e.g. "remove ORDER BY and sort client-side" — instead of an
+        # opaque code or a bare upstream 403.
+        parts = [f"{v.code}: {v.detail}" if v.detail else v.code for v in verdict.violations]
+        super().__init__("query rejected by validator: " + "; ".join(parts))
 
 
 def run_cypher(query: str, resolved_uris: Iterable[str], client: EolCypherClient) -> UpstreamResult:
