@@ -16,7 +16,8 @@ the implementation phase; this is a validation/run guide only.
 uv sync                      # provision env from pyproject.toml + uv.lock
 export EOL_JWT=...           # shared admin token (never per-user)
 export EOL_CYPHER_URL=https://eol.org/service/cypher
-# embeddings: either EMBEDDINGS_API_KEY=... or EOL_LOCAL_EMBEDDINGS=1
+# embeddings: default is Ollama at localhost; EOL_EMBEDDINGS_BACKEND=local runs the model
+# in-process (no server), and a hosted backend takes litellm's own key var (voyage → VOYAGE_API_KEY)
 ```
 
 ## Build the catalog (term→URI grounding)

@@ -16,9 +16,11 @@ the offline extractor/resolvers as a useful intermediate milestone.
 - [ ] **Ollama** running with **two models pulled**: `granite4.1:3b` (service extractor) and
   `mxbai-embed-large` (embeddings) — `ollama pull granite4.1:3b && ollama pull mxbai-embed-large`.
   Both defaults are local: no Anthropic or Voyage key needed for the common path.
-- [ ] *(Optional upgrades)* Frontier extractor backend → `EOL_SERVICE_MODEL_BACKEND=anthropic` +
-  `ANTHROPIC_API_KEY`; hosted embeddings → `EOL_EMBEDDINGS_BACKEND=voyage` + Voyage key in
-  `EMBEDDINGS_API_KEY`.
+- [ ] *(Optional upgrades)* Frontier extractor → `EOL_SERVICE_MODEL_BACKEND=litellm` +
+  `EOL_SERVICE_MODEL_ID=anthropic/claude-sonnet-5-5` + `ANTHROPIC_API_KEY` (hosted providers are
+  reached *through* Mellea's litellm backend; `anthropic` is not a Mellea backend name). Hosted
+  embeddings → `EOL_EMBEDDINGS_BACKEND=voyage` + `VOYAGE_API_KEY` — litellm resolves keys by its own
+  per-provider env names; the service never reads one.
 
 ## 1. Dependencies (T002 / T003)
 
@@ -82,7 +84,8 @@ the offline extractor/resolvers as a useful intermediate milestone.
   Ollama/Granite backend** — the typed `QueryIntent` must always parse. If weak, fall back to the
   Anthropic backend or add a parse-retry.
 - [ ] **Spike 2**: measure **extraction quality on the ambiguous tail** (US-6/US-7 phrasings) at 3B;
-  keep `EOL_SERVICE_MODEL_BACKEND=anthropic` as the configurable escape hatch for the hard cases.
+  keep the frontier model (`EOL_SERVICE_MODEL_BACKEND=litellm` +
+  `EOL_SERVICE_MODEL_ID=anthropic/<model>`) as the configurable escape hatch for the hard cases.
 - [ ] Keep `RuleBasedExtractor` as the offline/CI default (so CI stays key-free).
 - [ ] **Gate**: the extractor emits *raw surface phrases* (not pre-resolved entities) so
   disambiguation stays owned by resolution (the US-6 invariant).
