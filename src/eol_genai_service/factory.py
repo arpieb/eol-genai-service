@@ -71,18 +71,25 @@ def build_embedder(settings: Settings) -> Embedder:
     """The configured embedder, selected by ``embeddings_backend``.
 
     ``local``/``fastembed`` → an in-process fastembed model (no server, no network, no key); any
-    other value → litellm with a ``<backend>/<model_id>`` model string. The asymmetric query prefix
-    is model-specific (mxbai needs it; most others don't), so it's derived here and lives inside the
-    embedder. Catalog and query embeddings share this one builder so they always use the same model
-    (the index-consistency invariant).
+    other value → litellm with a ``<backend>/<model_id>`` model string, optionally pointed at
+    ``embeddings_api_base`` (a non-localhost Ollama, a gateway, self-hosted vLLM — ``None`` leaves
+    litellm's provider default in place). The asymmetric query prefix is model-specific (mxbai needs
+    it; most others don't), so it's derived here and lives inside the embedder. Catalog and query
+    embeddings share this one builder so they always use the same model (the index-consistency
+    invariant).
     """
     model_id = settings.embeddings_model_id
     query_prefix = QUERY_PREFIX if "mxbai" in model_id.lower() else ""
     if settings.embeddings_backend in _LOCAL_EMBEDDING_BACKENDS:
         # Pin the weights cache so a build-time pre-download is reused at runtime (offline start).
+        # No api_base here: the model runs in this process, so there is no endpoint to point at.
         cache_dir = os.getenv("EOL_EMBEDDINGS_CACHE_DIR") or None
         return FastEmbedEmbedder(model_id, query_prefix=query_prefix, cache_dir=cache_dir)
-    return LiteLLMEmbedder(f"{settings.embeddings_backend}/{model_id}", query_prefix=query_prefix)
+    return LiteLLMEmbedder(
+        f"{settings.embeddings_backend}/{model_id}",
+        query_prefix=query_prefix,
+        api_base=settings.embeddings_api_base,
+    )
 
 
 def _build_or_load_predicate_resolver(transport, embedder) -> EmbeddingPredicateResolver:

@@ -47,10 +47,17 @@ class Settings(BaseModel):
     # Models (configurable, non-load-bearing). See research.md R2/R3 and constitution v1.1.0.
     # The scoped service-side extractor (Principle V) defaults to Mellea's local Granite/Ollama
     # backend — no API key, offline, cheap. A frontier Claude model is a drop-in configurable
-    # upgrade for the hard disambiguation/repair tail (set EOL_SERVICE_MODEL_BACKEND=anthropic
-    # and EOL_SERVICE_MODEL_ID=claude-sonnet-4-6).
-    service_model_backend: str = "ollama"  # "ollama" (local default) | "anthropic"
+    # upgrade for the hard disambiguation/repair tail: set EOL_SERVICE_MODEL_BACKEND=litellm and
+    # EOL_SERVICE_MODEL_ID=anthropic/claude-sonnet-5-5. Mellea reaches hosted providers *through*
+    # its litellm backend — "anthropic" is a litellm model prefix, not a Mellea backend name.
+    # Mellea backend names: ollama | openai | litellm | hf | watsonx.
+    service_model_backend: str = "ollama"
     service_model_id: str = "granite4.1:3b"
+    # Endpoint override for the generation backend. None = let Mellea/the provider pick its own
+    # default (Ollama → http://localhost:11434); set it for a non-localhost Ollama, an
+    # OpenAI-compatible gateway, or self-hosted vLLM. See MelleaExtractor._endpoint_kwargs for
+    # how it reaches each backend (Mellea's litellm backend needs it on litellm, not its ctor).
+    service_model_api_base: str | None = None
     # Embeddings (the term→URI grounding, Principle IV — load-bearing, so subject to a recall@k
     # bake-off before scale; see research R2). Routed through litellm, so the backend is any litellm
     # provider prefix and the service imports no provider SDK. Default to a local Ollama model: no
@@ -60,6 +67,11 @@ class Settings(BaseModel):
     # the persisted index (delete `.cache/predicate_index`).
     embeddings_backend: str = "ollama"  # litellm provider prefix: ollama (local) | voyage | …
     embeddings_model_id: str = "mxbai-embed-large"
+    # Endpoint override for the embedding provider. None = litellm's own provider default (Ollama →
+    # http://localhost:11434); set it for a non-localhost Ollama, a LiteLLM/OpenAI-compatible
+    # gateway, or self-hosted vLLM. Ignored by the in-process `local`/fastembed backend, which runs
+    # the model here and has no endpoint.
+    embeddings_api_base: str | None = None
 
     # Resolution confidence gates. Defaults suit exact-match (offline) scores; the live embedding
     # path uses lower values (cosine tops out ~0.6), set by the composition root (see factory).
@@ -99,12 +111,16 @@ class Settings(BaseModel):
             service_model_id=os.getenv(
                 "EOL_SERVICE_MODEL_ID", cls.model_fields["service_model_id"].default
             ),
+            service_model_api_base=os.getenv("EOL_SERVICE_MODEL_API_BASE") or None,
             embeddings_backend=os.getenv(
                 "EOL_EMBEDDINGS_BACKEND", cls.model_fields["embeddings_backend"].default
             ),
             embeddings_model_id=os.getenv(
                 "EOL_EMBEDDINGS_MODEL_ID", cls.model_fields["embeddings_model_id"].default
             ),
+            # Empty string is treated as unset, so a blank line in .env means "provider default"
+            # rather than an unusable empty endpoint.
+            embeddings_api_base=os.getenv("EOL_EMBEDDINGS_API_BASE") or None,
             resolution_confidence_threshold=_float(
                 "EOL_RESOLUTION_CONFIDENCE_THRESHOLD",
                 cls.model_fields["resolution_confidence_threshold"].default,
