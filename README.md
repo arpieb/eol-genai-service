@@ -81,15 +81,26 @@ offline pipeline / local defaults):
 ```bash
 EOL_JWT=...                       # shared admin token (request from the EOL maintainer); enables live EOL
 EOL_CYPHER_URL=https://eol.org/service/cypher
-EOL_EMBEDDINGS_BACKEND=ollama     # litellm provider prefix; ollama (local) | voyage | openai | …
+EOL_EMBEDDINGS_BACKEND=ollama     # litellm provider prefix; local (in-process) | ollama | voyage | …
 EOL_EMBEDDINGS_MODEL_ID=mxbai-embed-large
-EOL_SERVICE_MODEL_BACKEND=ollama  # mellea backend; ollama (local Granite) | anthropic | …
+EOL_EMBEDDINGS_API_BASE=          # optional endpoint override; unset = the provider's default
+EOL_SERVICE_MODEL_BACKEND=ollama  # mellea backend; ollama | openai | litellm | hf | watsonx
 EOL_SERVICE_MODEL_ID=granite4.1:3b
+EOL_SERVICE_MODEL_API_BASE=       # optional endpoint override; unset = the backend's default
 ```
 
 Embeddings route through **litellm** and generation through **mellea**, so the provider is a config
 choice — the service imports no provider SDK directly. The local default needs a running Ollama with
 `granite4.1:3b` and `mxbai-embed-large` pulled.
+
+The two `*_API_BASE` values point a backend somewhere other than its default `localhost` — a
+non-localhost Ollama (including Ollama on the host from inside a container), a LiteLLM or
+OpenAI-compatible gateway, or self-hosted vLLM. Leave them unset to keep each provider's own
+default; `EOL_EMBEDDINGS_API_BASE` has no effect on the in-process `local` embedding backend.
+
+Hosted generation providers are reached *through* mellea's litellm backend, not as backend names of
+their own: a frontier model is `EOL_SERVICE_MODEL_BACKEND=litellm` with
+`EOL_SERVICE_MODEL_ID=anthropic/claude-sonnet-5-5` (plus `ANTHROPIC_API_KEY`).
 
 ## Test, lint, format
 

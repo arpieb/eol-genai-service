@@ -15,8 +15,8 @@ Spike findings (research R3 §spike):
 - Genuinely compositional questions (US-7, e.g. "pollinators that visit plants humans use") may be
   flattened to a single shape rather than `novel`. This is safe: their unnamed/abstract refs fail
   to resolve confidently, so the pipeline returns needs_clarification / out_of_capability — never a
-  fabricated answer. The frontier backend (`EOL_SERVICE_MODEL_BACKEND=anthropic`) is the configured
-  upgrade for this tail.
+  fabricated answer. A frontier model (`EOL_SERVICE_MODEL_BACKEND=litellm` with
+  `EOL_SERVICE_MODEL_ID=anthropic/claude-sonnet-5-5`) is the configured upgrade for this tail.
 """
 
 from __future__ import annotations
@@ -78,14 +78,34 @@ class MelleaExtractor:
         settings = settings or Settings()
         self._backend = settings.service_model_backend
         self._model_id = settings.service_model_id
+        self._api_base = settings.service_model_api_base
         self._session = None  # lazy — created on first extract()
+
+    def _endpoint_kwargs(self) -> dict:
+        """How a configured ``service_model_api_base`` reaches the chosen Mellea backend.
+
+        Mellea's ollama/openai backends take the endpoint as a ``base_url`` constructor kwarg
+        (forwarded by ``start_session`` via ``**backend_kwargs``). Its *litellm* backend accepts
+        ``base_url`` too but never forwards it to ``litellm.acompletion``, so there the endpoint has
+        to ride in ``model_options``, which litellm passes through verbatim (Mellea logs a "may drop"
+        warning for ``api_base``; that is a false positive — litellm consumes it while routing).
+
+        Returns ``{}`` when no endpoint is configured, so each backend keeps its own default.
+        Passing ``base_url=None`` would not be equivalent: the litellm backend's default is a
+        hardcoded ``http://localhost:11434``, and Ollama's ``None`` falls through to ``OLLAMA_HOST``.
+        """
+        if not self._api_base:
+            return {}
+        if self._backend == "litellm":
+            return {"model_options": {"api_base": self._api_base}}
+        return {"base_url": self._api_base}
 
     def _ensure_session(self):
         if self._session is None:
             import mellea  # imported lazily so the backend is only required at call time
 
             self._session = mellea.start_session(
-                backend_name=self._backend, model_id=self._model_id
+                backend_name=self._backend, model_id=self._model_id, **self._endpoint_kwargs()
             )
         return self._session
 
